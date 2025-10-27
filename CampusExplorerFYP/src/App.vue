@@ -1,11 +1,19 @@
-<script setup></script>
+<script setup>
+import LeafletMap from './LeafletMap.vue';
+</script>
 
 <template>
-  <h1>You did it!</h1>
+  <h1>Campus Explorer</h1>
   <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
+    Welcome to Campus Explorer! This application helps you navigate and explore various campuses using an interactive map powered by Google Maps. Use the map to find buildings, facilities, and other points of interest on campus.
   </p>
+  <LeafletMap />
 </template>
 
-<style scoped></style>
+<style scoped>
+h1{
+  text-align: center;
+}
+
+
+</style>
