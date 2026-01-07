@@ -4,10 +4,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'
 import beerImg from './assets/BeerIcon.png' 
+import computerImg from './assets/ComputerIcon.png'
+import foodImg from './assets/FoodIcon.png'
+import engineeringImg from './assets/EngineeringIcon.png'
+import questionMarkImg from './assets/QuestionMarkIcon.png'
+
+const props = defineProps({
+  sult: { type: Boolean}
+})
 
 const mapEl = ref(null)
 let map = null
@@ -22,8 +30,17 @@ var defaultIcon = L.Icon.extend({
     }
 });
 
-var beerIcon = new defaultIcon({iconUrl: beerImg});
+var beerIcon = new defaultIcon({iconUrl: questionMarkImg});
+var computerIcon = new defaultIcon({iconUrl: questionMarkImg});
+var foodIcon = new defaultIcon({iconUrl: questionMarkImg});
+var engineeringIcon = new defaultIcon({iconUrl: questionMarkImg});
 
+if(props.sult==true){
+    beerIcon = new defaultIcon({iconUrl: beerImg});
+}
+function setIcon(url){
+  return new defaultIcon({ iconUrl: url })
+}
 
 onMounted(async () => {
     await nextTick() // ensure DOM rendered
@@ -35,6 +52,9 @@ onMounted(async () => {
         attribution:
             '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map)
+    L.marker([53.28027348648772, -9.058721065521242], {icon: computerIcon}).addTo(map).bindPopup("Computer Science Building");
+    L.marker([53.27984730218445, -9.060936570167543], {icon: foodIcon}).addTo(map).bindPopup("Campus Cafeteria");
+    L.marker([53.283952206483185, -9.063854813575746], {icon: engineeringIcon}).addTo(map).bindPopup("Engineering Building");
     L.marker([53.277980540805586, -9.05839115381241], {icon: beerIcon}).addTo(map).bindPopup("Come here for a beer!");
     clickHandler = (e) => {
       // e.latlng is a LatLng object {lat, lng}
@@ -83,7 +103,15 @@ onBeforeUnmount(() => {
     map = null
   }
 })
-
+watch(
+  () => props.sult,
+  () => {
+    if (computerMarker) computerMarker.setIcon(computerIcon.value)
+    if (foodMarker) foodMarker.setIcon(foodIcon.value)
+    if (engineeringMarker) engineeringMarker.setIcon(engineeringIcon.value)
+    if (beerMarker) beerMarker.setIcon(beerIcon.value)
+  }
+)
 
 </script>
 
