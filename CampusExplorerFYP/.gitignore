@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.firebase/hosting.*.cache
 
 node_modules
 .DS_Store
