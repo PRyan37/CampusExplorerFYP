@@ -128,6 +128,8 @@ error: null
             this.error = e.message
         } finally {
             this.loading = false
+            this.fetchIncomingRequests()
+            this.fetchOutgoingRequests()
         }
     }
   }
