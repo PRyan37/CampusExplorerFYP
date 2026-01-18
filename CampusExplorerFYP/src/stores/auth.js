@@ -18,16 +18,15 @@ export const useAuthStore = defineStore('auth', {
   }),
    getters: {
     displayName(state) {
-      // prefer displayName if set, fall back to email
-      return state.user?.displayName || state.user?.email || ''
+      return  state.user?.email || ''
     }
   },
   actions: {
     init() {
+      
         console.log('[auth.init] called')
-      // keep store in sync with Firebase Auth
       onAuthStateChanged(auth, (user) => {
-        console.log('[auth.init]Auth state changed. User:', user.isAuthenticated)
+        console.log('[auth.init]Auth state changed. User:', this.isAuthenticated)
         this.user = user
         this.isAuthenticated = !!user
           this.ready = true  

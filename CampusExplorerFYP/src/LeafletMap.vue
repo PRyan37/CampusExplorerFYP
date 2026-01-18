@@ -7,7 +7,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'
-import beerImg from './assets/BeerIcon.png' 
+import beerImg from './assets/BeerIcon.png'
 import computerImg from './assets/ComputerIcon.png'
 import foodImg from './assets/FoodIcon.png'
 import engineeringImg from './assets/EngineeringIcon.png'

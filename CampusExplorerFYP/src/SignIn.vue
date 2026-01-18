@@ -39,8 +39,6 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { db } from './firebase/Firebase'                     // or './firebase/Firebase'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const email = ref('')
 const password = ref('')
@@ -54,21 +52,12 @@ async function onSubmit() {
   if (!email.value || !password.value) return
 
   try {
-    let user
-
     if (needsRegister.value) {
       // create account in Firebase Auth
-      user = await auth.register(email.value, password.value)
-
-      // optional: store profile in Firestore (NO password)
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email,
-        createdAt: serverTimestamp()
-      })
+      await auth.register(email.value, password.value)
     } else {
-      user = await auth.login(email.value, password.value)
+      await auth.login(email.value, password.value)
     }
-
     // redirect back to original page or home
     const redirect = route.query.redirect || '/'
     router.replace(redirect)

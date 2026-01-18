@@ -8,12 +8,12 @@
  */
 
 
-const { setGlobalOptions } = require("firebase-functions");
-const { onRequest } = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
-const cors = require("cors")({
-  origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
-});
+// const { setGlobalOptions } = require("firebase-functions");
+// const { onRequest } = require("firebase-functions/https");
+// const logger = require("firebase-functions/logger");
+// const cors = require("cors")({
+//   origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
+// });
 
 
 // For cost control, you can set the maximum number of containers that can be
@@ -26,7 +26,7 @@ const cors = require("cors")({
 // functions should each use functions.runWith({ maxInstances: 10 }) instead.
 // In the v1 API, each function can only serve one request per container, so
 // this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+// setGlobalOptions({ maxInstances: 10 });
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
@@ -35,10 +35,10 @@ setGlobalOptions({ maxInstances: 10 });
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
-exports.helloWorld = onRequest((req, res) => {
-  cors(req, res, () => {
-    logger.info("Hello logs!", { structuredData: true });
-    res.status(200).send("Hello from Firebase!");
-  });
-});
+// exports.helloWorld = onRequest((req, res) => {
+//   cors(req, res, () => {
+//     logger.info("Hello logs!", { structuredData: true });
+//     res.status(200).send("Hello from Firebase!");
+//   });
+// });
 
