@@ -24,13 +24,12 @@ async function logout() {
 <template>
   <TopBar />
   <h1>Campus Explorer</h1>
-  <h2>{{ auth.displayName }}</h2>
   <div class="controls">
     <button @click="toggleSult">Toggle Beer Icon</button>
     <button @click="logout">logout</button>
   </div>
   <friendsList />
-  <LeafletMap :sult="sult" />
+  <LeafletMap />
 </template>
 
 <style scoped>

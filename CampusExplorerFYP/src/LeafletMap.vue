@@ -17,7 +17,11 @@ import computerImg from './assets/ComputerIcon.png'
 import foodImg from './assets/FoodIcon.png'
 import engineeringImg from './assets/EngineeringIcon.png'
 import questionMarkImg from './assets/QuestionMarkIcon.png'
+import { useAuthStore } from './stores/auth'
+import { db } from './firebase/Firebase'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 
+const auth = useAuthStore()
 
 
 const mapEl = ref(null)
@@ -52,34 +56,42 @@ let foodDiscovered = false
 let engineeringDiscovered = false
 let beerDiscovered = false
 
+async function setDiscoveredOnUser(location) {
+  if (!auth.user) return
+  try {
+    const userRef = doc(db, 'users', auth.user.uid)
+    await updateDoc(userRef, { [location]: true })
+  } catch (e) {
+    console.error('[LeafletMap] Failed to update discovery flag', location, e)
+  }
+}
 
-
-function discoverComputer() {
+async function discoverComputer() {
 
   computerMarker.setIcon(discoveredIcons.computer)
   computerDiscovered = true
-
+  await setDiscoveredOnUser('engineeringDiscovered')
 }
 
-function discoverFood() {
+async function discoverFood() {
 
   foodMarker.setIcon(discoveredIcons.food)
   foodDiscovered = true
-
+  await setDiscoveredOnUser('foodDiscovered')
 }
 
-function discoverEngineering() {
+async function discoverEngineering() {
 
   engineeringMarker.setIcon(discoveredIcons.engineering)
   engineeringDiscovered = true
-
+  await setDiscoveredOnUser('engineeringDiscovered')
 }
 
-function discoverBeer() {
+async function discoverBeer() {
 
   beerMarker.setIcon(discoveredIcons.beer)
   beerDiscovered = true
-
+  await setDiscoveredOnUser('beerDiscovered')
 }
 onMounted(async () => {
   await nextTick()
@@ -96,6 +108,27 @@ onMounted(async () => {
   foodMarker = L.marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon }).addTo(map).bindPopup("Campus Cafeteria");
   engineeringMarker = L.marker([53.283952206483185, -9.063854813575746], { icon: unknownIcon }).addTo(map).bindPopup("Engineering Building");
   beerMarker = L.marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon }).addTo(map).bindPopup("Come here for a beer!");
+
+  if (auth.user) {
+    try {
+      const userRef = doc(db, 'users', auth.user.uid)
+      const snap = await getDoc(userRef)
+      if (snap.exists()) {
+        const data = snap.data()
+        computerDiscovered = !!data.computerDiscovered
+        foodDiscovered = !!data.foodDiscovered
+        engineeringDiscovered = !!data.engineeringDiscovered
+        beerDiscovered = !!data.beerDiscovered
+        if (computerDiscovered) computerMarker.setIcon(discoveredIcons.computer)
+        if (foodDiscovered) foodMarker.setIcon(discoveredIcons.food)
+        if (engineeringDiscovered) engineeringMarker.setIcon(discoveredIcons.engineering)
+        if (beerDiscovered) beerMarker.setIcon(discoveredIcons.beer)
+      }
+    } catch (e) {
+      console.error('[LeafletMap] Failed to load discovery state', e)
+    }
+  }
+
   clickHandler = (e) => {
     // e.latlng is a LatLng object {lat, lng}
     console.log('Map click:', e.latlng)
@@ -109,7 +142,7 @@ let marker, circle, zoomed;
 navigator.geolocation.watchPosition(success, error);
 
 
-function undiscoverAll() {
+async function undiscoverAll() {
   computerDiscovered = false
   foodDiscovered = false
   engineeringDiscovered = false
@@ -119,8 +152,22 @@ function undiscoverAll() {
   foodMarker.setIcon(unknownIcon)
   engineeringMarker.setIcon(unknownIcon)
   beerMarker.setIcon(unknownIcon)
+
+  if (auth.user) {
+    try {
+      const userRef = doc(db, 'users', auth.user.uid)
+      await updateDoc(userRef, {
+        computerDiscovered: false,
+        foodDiscovered: false,
+        engineeringDiscovered: false,
+        beerDiscovered: false
+      })
+    } catch (e) {
+      console.error('[LeafletMap] Failed to reset discoveries', e)
+    }
+  }
 }
-function success(position) {
+async function success(position) {
   if (!map) return;
   const latitude = position.coords.latitude;
   const longitude = position.coords.longitude;
@@ -147,21 +194,25 @@ function success(position) {
   if (!computerDiscovered && userLatLng.distanceTo(computerMarker.getLatLng()) <= discoverRadius) {
     computerDiscovered = true
     computerMarker.setIcon(discoveredIcons.computer)
+    await setDiscoveredOnUser('computerDiscovered')
   }
 
   if (!foodDiscovered && userLatLng.distanceTo(foodMarker.getLatLng()) <= discoverRadius) {
     foodDiscovered = true
     foodMarker.setIcon(discoveredIcons.food)
+    await setDiscoveredOnUser('foodDiscovered')
   }
 
   if (!engineeringDiscovered && userLatLng.distanceTo(engineeringMarker.getLatLng()) <= discoverRadius) {
     engineeringDiscovered = true
     engineeringMarker.setIcon(discoveredIcons.engineering)
+    await setDiscoveredOnUser('engineeringDiscovered')
   }
 
   if (!beerDiscovered && userLatLng.distanceTo(beerMarker.getLatLng()) <= discoverRadius) {
     beerDiscovered = true
     beerMarker.setIcon(discoveredIcons.beer)
+    await setDiscoveredOnUser('beerDiscovered')
   }
 
 }

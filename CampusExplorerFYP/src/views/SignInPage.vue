@@ -1,26 +1,17 @@
 <!-- filepath: c:\Users\ryanp\Git\CampusExplorer\CampusExplorerFYP\src\SignIn.vue -->
 <template>
+  <button @click="goToIntroduction">
+    What is Campus Explorer?
+  </button>
   <div class="signin">
     <h1>{{ needsRegister ? 'Create Account' : 'Sign In' }}</h1>
 
     <form @submit.prevent="onSubmit">
       <label for="email">Email</label>
-      <input
-        id="email"
-        type="email"
-        v-model.trim="email"
-        autocomplete="email"
-        required
-      />
+      <input id="email" type="email" v-model.trim="email" autocomplete="email" required />
 
       <label for="password">Password</label>
-      <input
-        id="password"
-        type="password"
-        v-model="password"
-        autocomplete="current-password"
-        required
-      />
+      <input id="password" type="password" v-model="password" autocomplete="current-password" required />
 
       <button type="submit" :disabled="auth.loading">
         {{ needsRegister ? 'Sign Up' : 'Sign In' }}
@@ -38,7 +29,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from './stores/auth'
+import { useAuthStore } from '../stores/auth'
 
 const email = ref('')
 const password = ref('')
@@ -47,6 +38,10 @@ const needsRegister = ref(false)
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+
+function goToIntroduction() {
+  router.push('/introduction')
+}
 
 async function onSubmit() {
   if (!email.value || !password.value) return
@@ -76,19 +71,31 @@ async function onSubmit() {
   border-radius: 8px;
   background: #fff;
 }
+
 form {
-   display: grid; gap: 0.75rem; 
-  }
+  display: grid;
+  gap: 0.75rem;
+}
+
 input {
-   padding: 0.5rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;
-   }
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
 button {
-   margin-top: 0.25rem; padding: 0.55rem 0.8rem; 
-  }
+  margin-top: 0.25rem;
+  padding: 0.55rem 0.8rem;
+}
+
 button.link {
-   background: transparent; color: #2563eb; text-decoration: underline; 
-  }
+  background: transparent;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
 .error {
-   color: #b91c1c; font-size: 0.9rem;
-    }
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
 </style>

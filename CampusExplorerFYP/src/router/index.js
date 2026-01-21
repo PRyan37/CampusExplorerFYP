@@ -2,8 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  { path: '/login', name: 'login', component: () => import('../SignIn.vue') },
-  { path: '/', name: 'home', component: () => import('../views/MainPage.vue'), meta: { requiresAuth: true } }
+  { path: '/introduction', name: 'introduction', component: () => import('../views/IntroductionPage.vue') },
+  { path: '/login', name: 'login', component: () => import('../views/SignInPage.vue') },
+  { path: '/', name: 'home', component: () => import('../views/MainPage.vue'), meta: { requiresAuth: true } },
+  { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/LeaderboardPage.vue'), meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({

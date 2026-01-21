@@ -4,6 +4,10 @@ import FriendsModal from './AddFriendsModal.vue';
 import { ref } from 'vue';
 import Notifications from './Notifications.vue';
 import NotificationsPopUp from './NotificationsPopUp.vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from './stores/auth';
+const auth = useAuthStore();
+const router = useRouter();
 const showNotificationsPopUp = ref(false);
 const showFriendsModal = ref(false);
 function openFriendsModal() {
@@ -18,14 +22,24 @@ function openNotificationsPopUp() {
 function closeNotificationsPopUp() {
   showNotificationsPopUp.value = false
 }
+function goLeaderboard() {
+  router.push('/leaderboard')
+}
+function goHome() {
+  router.push('/')
+}
 </script>
 
 <template>
   <div class="top-bar">
-    <h1 class="title">Campus Explorer</h1>
+    <h2>{{ auth.displayName }}</h2>
+    <h1 @click="goHome" class="title">Campus Explorer</h1>
     <div class="right-buttons">
-      <AddFriends @open-friend-modal="openFriendsModal" />
+      <div @click="goLeaderboard" class="buttons">
+        Leaderboard
+      </div>
       <Notifications @open-notifications-pop-up="openNotificationsPopUp" />
+      <AddFriends @open-friend-modal="openFriendsModal" />
     </div>
     <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
     <FriendsModal v-if="showFriendsModal" @close-friend-modal="closeFriendsModal" />
@@ -55,5 +69,15 @@ function closeNotificationsPopUp() {
   margin-left: auto;
   display: flex;
   gap: 8px;
+}
+
+.buttons {
+  padding: 4px;
+  background-color: #d6d6d6;
+  border: 3px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 </style>
