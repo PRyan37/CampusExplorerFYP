@@ -26,7 +26,7 @@ function goLeaderboard() {
   router.push('/leaderboard')
 }
 function goHome() {
-  router.push('/')
+  router.push('/home')
 }
 </script>
 

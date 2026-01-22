@@ -1,10 +1,11 @@
 <template>
   <h1>Leaflet Map</h1>
   <button @click="undiscoverAll">Reset Discoveries</button>
-  <button @click="discoverComputer">Discover Computer Science</button>
+  <!-- <button @click="discoverComputer">Discover Computer Science</button>
   <button @click="discoverFood">Discover Cafeteria</button>
   <button @click="discoverEngineering">Discover Engineering</button>
-  <button @click="discoverBeer">Discover Beer Spot</button>
+  <button @click="discoverBeer">Discover Beer Spot</button> -->
+  <button @click="getCurrentLocation">Center On My Location</button>
   <div id="map" ref="mapEl"></div>
 </template>
 
@@ -55,9 +56,12 @@ let computerDiscovered = false
 let foodDiscovered = false
 let engineeringDiscovered = false
 let beerDiscovered = false
+let watchId = null
+let marker, circle, zoomed;
 
 async function setDiscoveredOnUser(location) {
   if (!auth.user) return
+
   try {
     const userRef = doc(db, 'users', auth.user.uid)
     await updateDoc(userRef, { [location]: true })
@@ -93,22 +97,75 @@ async function discoverBeer() {
   beerDiscovered = true
   await setDiscoveredOnUser('beerDiscovered')
 }
-onMounted(async () => {
-  await nextTick()
-  if (!mapEl.value) return
+function getCurrentLocation() {
+  console.log('[LeafletMap] getCurrentLocation clicked')
 
-  map = L.map(mapEl.value).setView([51.505, -0.09], 13)
+  if (!map) {
+    console.warn('[LeafletMap] Map is not ready yet')
+    return
+  }
+
+
+  if (!('geolocation' in navigator)) {
+    alert('Geolocation is not supported by this browser.')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      console.log('[LeafletMap] getCurrentPosition success', position)
+      success(position)
+    },
+    (err) => {
+      console.error('[LeafletMap] getCurrentPosition error', err)
+      error(err)
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    }
+  )
+}
+
+onMounted(async () => {
+  await setUpMap()
+})
+
+
+function initMapInstance() {
+  map = L.map(mapEl.value).setView([53.2803, -9.06], 15)
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution:
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map)
-  computerMarker = L.marker([53.28027348648772, -9.058721065521242], { icon: unknownIcon }).addTo(map).bindPopup("Computer Science Building");
-  foodMarker = L.marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon }).addTo(map).bindPopup("Campus Cafeteria");
-  engineeringMarker = L.marker([53.283952206483185, -9.063854813575746], { icon: unknownIcon }).addTo(map).bindPopup("Engineering Building");
-  beerMarker = L.marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon }).addTo(map).bindPopup("Come here for a beer!");
 
+  computerMarker = L
+    .marker([53.28027348648772, -9.058721065521242], { icon: unknownIcon })
+    .addTo(map)
+    .bindPopup('Computer Science Building')
+
+  foodMarker = L
+    .marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon })
+    .addTo(map)
+    .bindPopup('Campus Cafeteria')
+
+  engineeringMarker = L
+    .marker([53.283952206483185, -9.063854813575746], { icon: unknownIcon })
+    .addTo(map)
+    .bindPopup('Engineering Building')
+
+  beerMarker = L
+    .marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon })
+    .addTo(map)
+    .bindPopup('Come here for a beer!')
+}
+async function setUpMap() {
+  await nextTick()
+  if (!mapEl.value) return
+  initMapInstance()
   if (auth.user) {
     try {
       const userRef = doc(db, 'users', auth.user.uid)
@@ -136,10 +193,13 @@ onMounted(async () => {
   }
   map.on('click', clickHandler)
 
+  if ('geolocation' in navigator) {
+    watchId = navigator.geolocation.watchPosition(success, error)
+  } else {
+    alert('Geolocation is not supported by this browser.')
+  }
+}
 
-})
-let marker, circle, zoomed;
-navigator.geolocation.watchPosition(success, error);
 
 
 async function undiscoverAll() {
@@ -167,26 +227,33 @@ async function undiscoverAll() {
     }
   }
 }
-async function success(position) {
-  if (!map) return;
-  const latitude = position.coords.latitude;
-  const longitude = position.coords.longitude;
-  const accuracy = 20
 
+function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   if (marker) {
-    map.removeLayer(marker);
+    map.removeLayer(marker)
   }
   if (circle) {
-    map.removeLayer(circle);
+    map.removeLayer(circle)
   }
+
   marker = L.marker([latitude, longitude]).addTo(map)
-  circle = L.circle([latitude, longitude], { radius: accuracy }).addTo(map);
+  circle = L.circle([latitude, longitude], { radius: accuracy }).addTo(map)
 
   if (!zoomed) {
     zoomed = map.fitBounds(circle.getBounds())
   }
   map.setView([latitude, longitude])
+}
 
+
+
+async function success(position) {
+  console.log('[LeafletMap] success', position)
+  if (!map) return;
+  const latitude = position.coords.latitude;
+  const longitude = position.coords.longitude;
+  const accuracy = 20
+  updateUserLocationMarker(latitude, longitude, accuracy)
   // 🔹 check discovery radius (~50m) around each POI
   const userLatLng = L.latLng(latitude, longitude)
   const discoverRadius = 50 // meters
@@ -215,6 +282,7 @@ async function success(position) {
     await setDiscoveredOnUser('beerDiscovered')
   }
 
+
 }
 function error(err) {
   if (err.code === 1) {
@@ -225,7 +293,14 @@ function error(err) {
 
 }
 onBeforeUnmount(() => {
+  if (watchId !== null && 'geolocation' in navigator) {
+    navigator.geolocation.clearWatch(watchId)
+    watchId = null
+  }
   if (map) {
+    if (clickHandler) {
+      map.off('click', clickHandler)
+    }
     map.remove()
     map = null
   }

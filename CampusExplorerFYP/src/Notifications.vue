@@ -13,6 +13,7 @@ function showNotifications() {
 <template>
   <div @click="showNotifications" class="notifications ">
     <img :src="bellImg" alt="Notifications" width="50" height="50" />
+    <span v-if="friendRequestsStore.incomingRequests.length" class="notifications-badge"></span>
   </div>
 
 </template>
@@ -27,5 +28,17 @@ function showNotifications() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  position: relative;
+}
+
+.notifications-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background-color: red;
+  border-radius: 50%;
+  border: 2px solid white;
 }
 </style>

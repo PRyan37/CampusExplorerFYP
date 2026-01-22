@@ -40,7 +40,7 @@ const route = useRoute()
 const auth = useAuthStore()
 
 function goToIntroduction() {
-  router.push('/introduction')
+  router.push('/')
 }
 
 async function onSubmit() {
@@ -54,7 +54,7 @@ async function onSubmit() {
       await auth.login(email.value, password.value)
     }
     // redirect back to original page or home
-    const redirect = route.query.redirect || '/'
+    const redirect = route.query.redirect || '/home'
     router.replace(redirect)
   } catch {
     // error message is already set in auth.error

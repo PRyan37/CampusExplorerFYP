@@ -2,9 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  { path: '/introduction', name: 'introduction', component: () => import('../views/IntroductionPage.vue') },
+  { path: '/', name: 'introduction', component: () => import('../views/IntroductionPage.vue') },
   { path: '/login', name: 'login', component: () => import('../views/SignInPage.vue') },
-  { path: '/', name: 'home', component: () => import('../views/MainPage.vue'), meta: { requiresAuth: true } },
+  { path: '/home', name: 'home', component: () => import('../views/MainPage.vue'), meta: { requiresAuth: true } },
   { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/LeaderboardPage.vue'), meta: { requiresAuth: true } }
 ]
 
@@ -34,7 +34,7 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
   if (to.path === '/login' && auth.isAuthenticated) {
-    return { path: '/' }
+    return { path: '/home' }
   }
 })
 
