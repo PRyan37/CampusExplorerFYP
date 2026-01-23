@@ -1,12 +1,24 @@
 <template>
-  <h1>Leaflet Map</h1>
-  <button @click="undiscoverAll">Reset Discoveries</button>
-  <!-- <button @click="discoverComputer">Discover Computer Science</button>
-  <button @click="discoverFood">Discover Cafeteria</button>
-  <button @click="discoverEngineering">Discover Engineering</button>
-  <button @click="discoverBeer">Discover Beer Spot</button> -->
-  <button @click="getCurrentLocation">Center On My Location</button>
-  <div id="map" ref="mapEl"></div>
+  <div class="container-fluid py-3">
+    <div class="row">
+      <div class="col-12 col-md-3 mb-3">
+        <h1 class="h4 mb-3 text-center text-md-start">Leaflet Map</h1>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-danger btn-sm" @click="undiscoverAll">
+            Reset Discoveries
+          </button>
+          <button class="btn btn-primary btn-sm" @click="getCurrentLocation">
+            Center On My Location
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-9">
+        <div id="map" ref="mapEl" class="leaflet-map"></div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -43,19 +55,19 @@ const defaultIcon = L.Icon.extend({
 const unknownIcon = new defaultIcon({ iconUrl: questionMarkImg })
 
 const discoveredIcons = {
-  beer: new defaultIcon({ iconUrl: beerImg }),
-  computer: new defaultIcon({ iconUrl: computerImg }),
-  food: new defaultIcon({ iconUrl: foodImg }),
-  engineering: new defaultIcon({ iconUrl: engineeringImg }),
+  sult: new defaultIcon({ iconUrl: beerImg }),
+  computerScienceBuilding: new defaultIcon({ iconUrl: computerImg }),
+  anBhiaLann: new defaultIcon({ iconUrl: foodImg }),
+  engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
 
 };
 
 
-let computerMarker, foodMarker, engineeringMarker, beerMarker
-let computerDiscovered = false
-let foodDiscovered = false
-let engineeringDiscovered = false
-let beerDiscovered = false
+let computerScienceBuildingMarker, anBhiaLannMarker, engineeringBuildingMarker, sultMarker
+let computerScienceBuildingDiscovered = false
+let anBhiaLannDiscovered = false
+let engineeringBuildingDiscovered = false
+let sultDiscovered = false
 let watchId = null
 let marker, circle, zoomed;
 
@@ -64,38 +76,39 @@ async function setDiscoveredOnUser(location) {
 
   try {
     const userRef = doc(db, 'users', auth.user.uid)
-    await updateDoc(userRef, { [location]: true })
+    const timestampField = `${location}At`
+    await updateDoc(userRef, { [location]: true, [timestampField]: new Date() })
   } catch (e) {
     console.error('[LeafletMap] Failed to update discovery flag', location, e)
   }
 }
 
-async function discoverComputer() {
+async function discoverComputerScienceBuilding() {
 
-  computerMarker.setIcon(discoveredIcons.computer)
-  computerDiscovered = true
-  await setDiscoveredOnUser('engineeringDiscovered')
+  computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding)
+  computerScienceBuildingDiscovered = true
+  await setDiscoveredOnUser('computerScienceBuildingDiscovered')
 }
 
-async function discoverFood() {
+async function discoverAnBhiaLann() {
 
-  foodMarker.setIcon(discoveredIcons.food)
-  foodDiscovered = true
-  await setDiscoveredOnUser('foodDiscovered')
+  anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann)
+  anBhiaLannDiscovered = true
+  await setDiscoveredOnUser('anBhiaLannDiscovered')
 }
 
-async function discoverEngineering() {
+async function discoverEngineeringBuilding() {
 
-  engineeringMarker.setIcon(discoveredIcons.engineering)
-  engineeringDiscovered = true
-  await setDiscoveredOnUser('engineeringDiscovered')
+  engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding)
+  engineeringBuildingDiscovered = true
+  await setDiscoveredOnUser('engineeringBuildingDiscovered')
 }
 
-async function discoverBeer() {
+async function discoverSult() {
 
-  beerMarker.setIcon(discoveredIcons.beer)
-  beerDiscovered = true
-  await setDiscoveredOnUser('beerDiscovered')
+  sultMarker.setIcon(discoveredIcons.sult)
+  sultDiscovered = true
+  await setDiscoveredOnUser('sultDiscovered')
 }
 function getCurrentLocation() {
   console.log('[LeafletMap] getCurrentLocation clicked')
@@ -142,22 +155,22 @@ function initMapInstance() {
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map)
 
-  computerMarker = L
+  computerScienceBuildingMarker = L
     .marker([53.28027348648772, -9.058721065521242], { icon: unknownIcon })
     .addTo(map)
     .bindPopup('Computer Science Building')
 
-  foodMarker = L
+  anBhiaLannMarker = L
     .marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon })
     .addTo(map)
     .bindPopup('Campus Cafeteria')
 
-  engineeringMarker = L
+  engineeringBuildingMarker = L
     .marker([53.283952206483185, -9.063854813575746], { icon: unknownIcon })
     .addTo(map)
     .bindPopup('Engineering Building')
 
-  beerMarker = L
+  sultMarker = L
     .marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon })
     .addTo(map)
     .bindPopup('Come here for a beer!')
@@ -172,14 +185,14 @@ async function setUpMap() {
       const snap = await getDoc(userRef)
       if (snap.exists()) {
         const data = snap.data()
-        computerDiscovered = !!data.computerDiscovered
-        foodDiscovered = !!data.foodDiscovered
-        engineeringDiscovered = !!data.engineeringDiscovered
-        beerDiscovered = !!data.beerDiscovered
-        if (computerDiscovered) computerMarker.setIcon(discoveredIcons.computer)
-        if (foodDiscovered) foodMarker.setIcon(discoveredIcons.food)
-        if (engineeringDiscovered) engineeringMarker.setIcon(discoveredIcons.engineering)
-        if (beerDiscovered) beerMarker.setIcon(discoveredIcons.beer)
+        computerScienceBuildingDiscovered = !!data.computerScienceBuildingDiscovered
+        anBhiaLannDiscovered = !!data.anBhiaLannDiscovered
+        engineeringBuildingDiscovered = !!data.engineeringBuildingDiscovered
+        sultDiscovered = !!data.sultDiscovered
+        if (computerScienceBuildingDiscovered) computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding)
+        if (anBhiaLannDiscovered) anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann)
+        if (engineeringBuildingDiscovered) engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding)
+        if (sultDiscovered) sultMarker.setIcon(discoveredIcons.sult)
       }
     } catch (e) {
       console.error('[LeafletMap] Failed to load discovery state', e)
@@ -203,15 +216,15 @@ async function setUpMap() {
 
 
 async function undiscoverAll() {
-  computerDiscovered = false
-  foodDiscovered = false
-  engineeringDiscovered = false
-  beerDiscovered = false
+  computerScienceBuildingDiscovered = false
+  anBhiaLannDiscovered = false
+  engineeringBuildingDiscovered = false
+  sultDiscovered = false
 
-  computerMarker.setIcon(unknownIcon)
-  foodMarker.setIcon(unknownIcon)
-  engineeringMarker.setIcon(unknownIcon)
-  beerMarker.setIcon(unknownIcon)
+  computerScienceBuildingMarker.setIcon(unknownIcon)
+  anBhiaLannMarker.setIcon(unknownIcon)
+  engineeringBuildingMarker.setIcon(unknownIcon)
+  sultMarker.setIcon(unknownIcon)
 
   if (auth.user) {
     try {
@@ -258,28 +271,28 @@ async function success(position) {
   const userLatLng = L.latLng(latitude, longitude)
   const discoverRadius = 50 // meters
 
-  if (!computerDiscovered && userLatLng.distanceTo(computerMarker.getLatLng()) <= discoverRadius) {
-    computerDiscovered = true
-    computerMarker.setIcon(discoveredIcons.computer)
-    await setDiscoveredOnUser('computerDiscovered')
+  if (!computerScienceBuildingDiscovered && userLatLng.distanceTo(computerScienceBuildingMarker.getLatLng()) <= discoverRadius) {
+    computerScienceBuildingDiscovered = true
+    computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding)
+    await setDiscoveredOnUser('computerScienceBuildingDiscovered')
   }
 
-  if (!foodDiscovered && userLatLng.distanceTo(foodMarker.getLatLng()) <= discoverRadius) {
-    foodDiscovered = true
-    foodMarker.setIcon(discoveredIcons.food)
-    await setDiscoveredOnUser('foodDiscovered')
+  if (!anBhiaLannDiscovered && userLatLng.distanceTo(anBhiaLannMarker.getLatLng()) <= discoverRadius) {
+    anBhiaLannDiscovered = true
+    anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann)
+    await setDiscoveredOnUser('anBhiaLannDiscovered')
   }
 
-  if (!engineeringDiscovered && userLatLng.distanceTo(engineeringMarker.getLatLng()) <= discoverRadius) {
-    engineeringDiscovered = true
-    engineeringMarker.setIcon(discoveredIcons.engineering)
-    await setDiscoveredOnUser('engineeringDiscovered')
+  if (!engineeringBuildingDiscovered && userLatLng.distanceTo(engineeringBuildingMarker.getLatLng()) <= discoverRadius) {
+    engineeringBuildingDiscovered = true
+    engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding)
+    await setDiscoveredOnUser('engineeringBuildingDiscovered')
   }
 
-  if (!beerDiscovered && userLatLng.distanceTo(beerMarker.getLatLng()) <= discoverRadius) {
-    beerDiscovered = true
-    beerMarker.setIcon(discoveredIcons.beer)
-    await setDiscoveredOnUser('beerDiscovered')
+  if (!sultDiscovered && userLatLng.distanceTo(sultMarker.getLatLng()) <= discoverRadius) {
+    sultDiscovered = true
+    sultMarker.setIcon(discoveredIcons.sult)
+    await setDiscoveredOnUser('sultDiscovered')
   }
 
 

@@ -14,6 +14,7 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
     "firebase": "^12.7.0",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.3",

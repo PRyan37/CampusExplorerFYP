@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue'
 import LeafletMap from '../LeafletMap.vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
@@ -9,10 +8,6 @@ import friendsList from '@/FriendsList.vue'
 const auth = useAuthStore()
 const router = useRouter()
 
-const sult = ref(false)
-function toggleSult() {
-  sult.value = !sult.value
-}
 async function logout() {
   console.log("LOG OUT1: ", auth.isAuthenticated)
   await auth.logout()
@@ -25,7 +20,6 @@ async function logout() {
   <TopBar />
   <h1>Campus Explorer</h1>
   <div class="controls">
-    <button @click="toggleSult">Toggle Beer Icon</button>
     <button @click="logout">logout</button>
   </div>
   <friendsList />

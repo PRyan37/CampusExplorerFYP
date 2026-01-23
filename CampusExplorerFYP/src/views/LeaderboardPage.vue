@@ -6,6 +6,7 @@ import friendsList from '@/FriendsList.vue'
 import { onMounted, } from 'vue'
 import { useProgressStore } from '@/stores/progress'
 import { useFriendsStore } from '@/stores/friends'
+import Activity from '@/Activity.vue'
 const friendsStore = useFriendsStore()
 
 const auth = useAuthStore()
@@ -59,7 +60,7 @@ onMounted(async () => {
         </table>
     </div>
     <friendsList />
-
+    <activity />
 
 </template>
 
