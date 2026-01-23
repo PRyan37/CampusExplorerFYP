@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from './stores/auth'
-import friendsList from '@/FriendsList.vue'
-import { onMounted, } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useFriendsStore } from '@/stores/friends'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase/Firebase'
@@ -11,7 +10,28 @@ const friendsStore = useFriendsStore()
 const auth = useAuthStore()
 
 const recentDiscoveries = ref([])
+const selectedFriendId = ref('')
 
+const filteredDiscoveries = computed(() => {
+    if (!selectedFriendId.value) return recentDiscoveries.value
+
+
+    if (selectedFriendId.value === 'me') {
+        return recentDiscoveries.value.filter(
+            (e) => e.email === auth.user.email
+        )
+    }
+
+
+    const friend = friendsStore.friendsList.find(
+        (f) => f.friendId === selectedFriendId.value
+    )
+    if (!friend) return []
+
+    return recentDiscoveries.value.filter(
+        (e) => e.email === friend.friendEmail
+    )
+})
 async function buildActivityEntriesForUser(userId, email) {
     const userRef = doc(db, 'users', userId)
     const userDoc = await getDoc(userRef)
@@ -62,17 +82,24 @@ onMounted(async () => {
 
 <template>
     <h1>Recent Discoveries</h1>
+    <label for="friendFilter">Filter by Friend:</label>
 
+    <select id="friendFilter" name="friendFilter" v-model="selectedFriendId">
+        <option value="">-- All --</option>
+        <option value="me">Myself</option>
+        <option v-for="friend in friendsStore.friendsList" :key="friend.friendId" :value="friend.friendId">
+            {{ friend.friendEmail }}
+        </option>
+    </select>
     <div class="leaderboard-table">
 
         <ul>
-            <li v-for="entry in recentDiscoveries" :key="entry.email + entry.location + entry.time">
+            <li v-for="entry in filteredDiscoveries" :key="entry.email + entry.location + entry.time">
                 <b>{{ entry.email }}</b> discovered <b>{{ entry.location }}</b> at {{ entry.time.toLocaleString() }}
             </li>
         </ul>
     </div>
 
-    <friendsList />
 </template>
 
 <style scoped>
