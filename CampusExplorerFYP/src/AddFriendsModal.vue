@@ -1,38 +1,33 @@
 <script setup>
-import { ref } from 'vue'
-import { useFriendsStore } from './stores/friends'
-import { useFriendRequestsStore } from './stores/friendRequests'
-const friendsStore = useFriendsStore()
-const friendRequestsStore = useFriendRequestsStore()
-const emit = defineEmits(['closeFriendModal'])
-const email = ref('')
+import { ref } from "vue";
+import { useFriendsStore } from "./stores/friends";
+import { useFriendRequestsStore } from "./stores/friendRequests";
+const friendsStore = useFriendsStore();
+const friendRequestsStore = useFriendRequestsStore();
+const emit = defineEmits(["closeFriendModal"]);
+const email = ref("");
 async function onSubmit() {
   try {
-    await friendRequestsStore.sendFriendRequest(email.value)
-    emit('closeFriendModal')
+    await friendRequestsStore.sendFriendRequest(email.value);
+    emit("closeFriendModal");
   } catch (e) {
-    console.error('addFriend failed:', e)
-
+    console.error("addFriend failed:", e);
   }
 }
 </script>
 
 <template>
   <div class="backdrop" @click.self="emit('closeFriendModal')">
-    <div class="modal">
+    <div class="add-friend-modal">
       <h2>Add Friend</h2>
       <form @submit.prevent="onSubmit">
         <label for="email">Enter the email of the user you would like to add</label>
         <input id="email" type="email" v-model.trim="email" autocomplete="email" required />
-        <button type="submit">
-          Add Friend
-        </button>
+        <button type="submit">Add Friend</button>
         <p class="error" v-if="friendsStore.error">{{ friendsStore.error }}</p>
       </form>
     </div>
   </div>
-
-
 </template>
 
 <style scoped>
@@ -46,7 +41,7 @@ async function onSubmit() {
   z-index: 2000;
 }
 
-.modal {
+.add-friend-modal {
   background: white;
   padding: 16px 24px;
   border-radius: 6px;
