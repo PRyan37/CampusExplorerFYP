@@ -1,12 +1,11 @@
 <script setup>
-import AddFriends from "./AddFriends.vue";
 import FriendsModal from "./AddFriendsModal.vue";
 import { ref } from "vue";
-import Notifications from "./Notifications.vue";
 import NotificationsPopUp from "./NotificationsPopUp.vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import bellImg from "./assets/bell.jpg";
+import leaderboardImg from "./assets/leaderboard.png";
 const auth = useAuthStore();
 const router = useRouter();
 const showNotificationsPopUp = ref(false);
@@ -36,15 +35,15 @@ function goHome() {
     <h2>{{ auth.displayName }}</h2>
     <h1 @click="goHome" class="title">Campus Explorer</h1>
     <div class="right-buttons">
-      <div @click="goLeaderboard" class="buttons">Leaderboard</div>
-      <div @click="openFriendsModal" class="add-friends">
+      <div @click="goLeaderboard" class="buttons">
+        <img :src="leaderboardImg" alt="Leaderboard" />
+      </div>
+      <div @click="openFriendsModal" class="buttons">
         <b>+</b>
       </div>
-      <div @click="openNotificationsPopUp" class="notifications">
-        <img :src="bellImg" alt="Notifications" width="50" height="50" />
+      <div @click="openNotificationsPopUp" class="buttons">
+        <img :src="bellImg" alt="Notifications" />
       </div>
-      <!-- <Notifications @open-notifications-pop-up="openNotificationsPopUp" />-->
-      <AddFriends @open-friend-modal="openFriendsModal" />
     </div>
     <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
     <FriendsModal v-if="showFriendsModal" @close-friend-modal="closeFriendsModal" />
@@ -76,13 +75,21 @@ function goHome() {
 }
 
 .buttons {
-  padding: 4px;
-  background-color: #d6d6d6;
-  border: 3px solid black;
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  border: 1px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.buttons img {
+  border-radius: 6px;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .add-friends {
