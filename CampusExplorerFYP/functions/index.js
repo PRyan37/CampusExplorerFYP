@@ -35,10 +35,10 @@ setGlobalOptions({ maxInstances: 10 });
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
-exports.helloWorld = onRequest((req, res) => {
-  cors(req, res, () => {
-    logger.info("Hello logs!", { structuredData: true });
-    res.status(200).send("Hello from Firebase!");
-  });
-});
+// exports.helloWorld = onRequest((req, res) => {
+//   cors(req, res, () => {
+//     logger.info("Hello logs!", { structuredData: true });
+//     res.status(200).send("Hello from Firebase!");
+//   });
+// });
 

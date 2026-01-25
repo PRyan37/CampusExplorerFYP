@@ -3,7 +3,7 @@ import LeafletMap from '../LeafletMap.vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import TopBar from '../TopBar.vue'
-import friendsList from '@/FriendsList.vue'
+
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -22,7 +22,7 @@ async function logout() {
   <div class="controls">
     <button @click="logout">logout</button>
   </div>
-  <friendsList />
+
   <LeafletMap />
 </template>
 

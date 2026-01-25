@@ -1,32 +1,33 @@
 <script setup>
-import AddFriends from './AddFriends.vue';
-import FriendsModal from './AddFriendsModal.vue';
-import { ref } from 'vue';
-import Notifications from './Notifications.vue';
-import NotificationsPopUp from './NotificationsPopUp.vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from './stores/auth';
+import AddFriends from "./AddFriends.vue";
+import FriendsModal from "./AddFriendsModal.vue";
+import { ref } from "vue";
+import Notifications from "./Notifications.vue";
+import NotificationsPopUp from "./NotificationsPopUp.vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "./stores/auth";
+import bellImg from "./assets/bell.jpg";
 const auth = useAuthStore();
 const router = useRouter();
 const showNotificationsPopUp = ref(false);
 const showFriendsModal = ref(false);
 function openFriendsModal() {
-  showFriendsModal.value = true
+  showFriendsModal.value = true;
 }
 function closeFriendsModal() {
-  showFriendsModal.value = false
+  showFriendsModal.value = false;
 }
 function openNotificationsPopUp() {
-  showNotificationsPopUp.value = true
+  showNotificationsPopUp.value = true;
 }
 function closeNotificationsPopUp() {
-  showNotificationsPopUp.value = false
+  showNotificationsPopUp.value = false;
 }
 function goLeaderboard() {
-  router.push('/leaderboard')
+  router.push("/leaderboard");
 }
 function goHome() {
-  router.push('/home')
+  router.push("/home");
 }
 </script>
 
@@ -35,10 +36,14 @@ function goHome() {
     <h2>{{ auth.displayName }}</h2>
     <h1 @click="goHome" class="title">Campus Explorer</h1>
     <div class="right-buttons">
-      <div @click="goLeaderboard" class="buttons">
-        Leaderboard
+      <div @click="goLeaderboard" class="buttons">Leaderboard</div>
+      <div @click="openFriendsModal" class="add-friends">
+        <b>+</b>
       </div>
-      <Notifications @open-notifications-pop-up="openNotificationsPopUp" />
+      <div @click="openNotificationsPopUp" class="notifications">
+        <img :src="bellImg" alt="Notifications" width="50" height="50" />
+      </div>
+      <!-- <Notifications @open-notifications-pop-up="openNotificationsPopUp" />-->
       <AddFriends @open-friend-modal="openFriendsModal" />
     </div>
     <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
@@ -64,7 +69,6 @@ function goHome() {
   transform: translateX(-50%);
 }
 
-
 .right-buttons {
   margin-left: auto;
   display: flex;
@@ -73,6 +77,17 @@ function goHome() {
 
 .buttons {
   padding: 4px;
+  background-color: #d6d6d6;
+  border: 3px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.add-friends {
+  width: 50px;
+  height: 50px;
   background-color: #d6d6d6;
   border: 3px solid black;
   display: flex;
