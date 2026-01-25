@@ -1,7 +1,4 @@
-<script setup>
-import { useAuthStore } from './stores/auth'
-
-</script>
+<script setup></script>
 
 <template>
   <RouterView />
