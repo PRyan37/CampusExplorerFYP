@@ -1,11 +1,11 @@
 <script setup>
-import { useFriendsStore } from './stores/friends';
-import { useFriendRequestsStore } from './stores/friendRequests';
-import { onMounted } from 'vue';
+import { useFriendsStore } from "./stores/friends";
+import { useFriendRequestsStore } from "./stores/friendRequests";
+import { onMounted } from "vue";
 
 const friendRequestsStore = useFriendRequestsStore();
 const friendsStore = useFriendsStore();
-const emit = defineEmits(['closeNotificationsPopUp']);
+const emit = defineEmits(["closeNotificationsPopUp"]);
 
 function acceptRequest(requestId) {
     friendRequestsStore.acceptFriendRequest(requestId);
@@ -13,9 +13,7 @@ function acceptRequest(requestId) {
 }
 onMounted(async () => {
     await friendRequestsStore.fetchIncomingRequests();
-
 });
-
 </script>
 
 <template>
@@ -44,11 +42,12 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 10000;
 }
 
 .backdrop {
     position: fixed;
     inset: 0;
-    z-index: 2000;
+    z-index: 9999;
 }
 </style>

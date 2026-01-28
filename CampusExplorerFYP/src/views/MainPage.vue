@@ -38,12 +38,16 @@ async function logout() {
 .app-root {
   margin: 0;
   padding: 0;
-}
-
-.main-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.main-page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
 }
 
 .map-wrapper {

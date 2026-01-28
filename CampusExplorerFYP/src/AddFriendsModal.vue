@@ -38,7 +38,7 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 9999;
 }
 
 .add-friend-modal {
@@ -46,6 +46,7 @@ async function onSubmit() {
   padding: 16px 24px;
   border-radius: 6px;
   min-width: 280px;
+  z-index: 10000;
 }
 
 form {

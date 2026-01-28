@@ -1,4 +1,8 @@
 <template>
+  <audio ref="audioEl" :src="discoverySfx" preload="auto"></audio>
+  <div class="ui-overlay">
+    <Toast ref="toastRef" />
+  </div>
   <div class="container-fluid py-3">
     <div class="row">
       <div class="col-12 col-md-3 mb-3">
@@ -21,6 +25,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import Toast from "./Toast.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import beerImg from "./assets/BeerIcon.png";
@@ -31,9 +36,21 @@ import questionMarkImg from "./assets/QuestionMarkIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import discoverySfx from "./assets/sounds/discoverySound.mp3";
 
 const auth = useAuthStore();
+const toastRef = ref(null);
 
+function onDiscoveryUnlocked(name) {
+  playDiscoverySound();
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+  });
+  console.log("[LeafletMap] onDiscoveryUnlocked:", name);
+  toastRef.value?.showToast(`You discovered: ${name}!`);
+}
 const mapEl = ref(null);
 let map = null;
 let clickHandler = null;
@@ -47,6 +64,17 @@ const defaultIcon = L.Icon.extend({
   },
 });
 
+const audioEl = ref(null);
+
+function playDiscoverySound() {
+  const a = audioEl.value;
+  if (!a) return;
+
+  a.currentTime = 0;
+  a.play().catch((err) => {
+    console.warn("Audio play blocked:", err);
+  });
+}
 const unknownIcon = new defaultIcon({ iconUrl: questionMarkImg });
 
 const discoveredIcons = {
@@ -220,10 +248,10 @@ async function undiscoverAll() {
     try {
       const userRef = doc(db, "users", auth.user.uid);
       await updateDoc(userRef, {
-        computerDiscovered: false,
-        foodDiscovered: false,
-        engineeringDiscovered: false,
-        beerDiscovered: false,
+        computerScienceBuildingDiscovered: false,
+        anBhiaLannDiscovered: false,
+        engineeringBuildingDiscovered: false,
+        sultDiscovered: false,
       });
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
@@ -266,6 +294,7 @@ async function success(position) {
     computerScienceBuildingDiscovered = true;
     computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
     await setDiscoveredOnUser("computerScienceBuildingDiscovered");
+    onDiscoveryUnlocked("Computer Science Building");
   }
 
   if (
@@ -275,6 +304,7 @@ async function success(position) {
     anBhiaLannDiscovered = true;
     anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
     await setDiscoveredOnUser("anBhiaLannDiscovered");
+    onDiscoveryUnlocked("An Bhia Lann");
   }
 
   if (
@@ -284,12 +314,14 @@ async function success(position) {
     engineeringBuildingDiscovered = true;
     engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
     await setDiscoveredOnUser("engineeringBuildingDiscovered");
+    onDiscoveryUnlocked("Engineering Building");
   }
 
   if (!sultDiscovered && userLatLng.distanceTo(sultMarker.getLatLng()) <= discoverRadius) {
     sultDiscovered = true;
     sultMarker.setIcon(discoveredIcons.sult);
     await setDiscoveredOnUser("sultDiscovered");
+    onDiscoveryUnlocked("Sult");
   }
 }
 function error(err) {
@@ -315,8 +347,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.ui-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
 :deep(#map.leaflet-container) {
-  height: 70vh;
+  height: 60vh;
   min-height: 400px;
   width: 100%;
 }

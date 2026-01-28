@@ -1,46 +1,46 @@
 <script setup>
-import { ref } from 'vue'
-import { useAuthStore } from '../stores/auth'
-import TopBar from '../TopBar.vue'
-import friendsList from '@/FriendsList.vue'
-import { onMounted, } from 'vue'
-import { useProgressStore } from '@/stores/progress'
-import { useFriendsStore } from '@/stores/friends'
-import Activity from '@/Activity.vue'
-const friendsStore = useFriendsStore()
+import { ref } from "vue";
+import { useAuthStore } from "../stores/auth";
+import TopBar from "../TopBar.vue";
+import friendsList from "@/FriendsList.vue";
+import { onMounted } from "vue";
+import { useProgressStore } from "@/stores/progress";
+import { useFriendsStore } from "@/stores/friends";
+import Activity from "@/Activity.vue";
+import Toast from "@/Toast.vue";
+const friendsStore = useFriendsStore();
 
-const auth = useAuthStore()
+const auth = useAuthStore();
 
-const progressStore = useProgressStore()
+const progressStore = useProgressStore();
 
-
-const leaderboard = ref([])
+const leaderboard = ref([]);
 
 onMounted(async () => {
-    await friendsStore.fetchFriends()
+    await friendsStore.fetchFriends();
 
-    const leaderboardEntries = []
+    const leaderboardEntries = [];
 
-
-    const myScore = await progressStore.calculateScoreForUser(auth.user.uid)
+    const myScore = await progressStore.calculateScoreForUser(auth.user.uid);
     leaderboardEntries.push({
         email: auth.user.email,
-        score: myScore
-    })
+        score: myScore,
+    });
     for (const friend of friendsStore.friendsList) {
-        const score = await progressStore.calculateScoreForUser(friend.friendId)
+        const score = await progressStore.calculateScoreForUser(friend.friendId);
         leaderboardEntries.push({
             email: friend.friendEmail,
-            score
-        })
+            score,
+        });
     }
 
-    leaderboard.value = leaderboardEntries.sort((a, b) => b.score - a.score)
-})
+    leaderboard.value = leaderboardEntries.sort((a, b) => b.score - a.score);
+});
 </script>
 
 <template>
     <TopBar />
+    <Toast ref="toastRef" />
     <h1>Leaderboard</h1>
 
     <div class="leaderboard-table">
@@ -61,7 +61,6 @@ onMounted(async () => {
     </div>
     <friendsList />
     <activity />
-
 </template>
 
 <style scoped>

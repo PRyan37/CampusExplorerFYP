@@ -92,7 +92,7 @@ function goHome() {
 
 @media (max-width: 480px) {
   .auth-name {
-    font-size: 1.1rem;
+    font-size: 0.8rem;
     max-width: 45vw;
   }
 }
