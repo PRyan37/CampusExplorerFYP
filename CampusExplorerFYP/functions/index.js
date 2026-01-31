@@ -7,14 +7,12 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
 const cors = require("cors")({
   origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
 });
-
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -41,4 +39,3 @@ setGlobalOptions({ maxInstances: 10 });
 //     res.status(200).send("Hello from Firebase!");
 //   });
 // });
-

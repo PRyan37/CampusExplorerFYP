@@ -7,6 +7,8 @@ import { useAuthStore } from "./stores/auth";
 import bellImg from "./assets/bell.png";
 import leaderboardImg from "./assets/leaderboard.png";
 import homeImg from "./assets/homeIcon.png";
+import { useFriendRequestsStore } from "./stores/friendRequests";
+const friendRequestsStore = useFriendRequestsStore();
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
@@ -53,6 +55,9 @@ function goHome() {
         </div>
         <div @click="openNotificationsPopUp" class="buttons" :class="{ active: isNotifications }">
           <img :src="bellImg" alt="Notifications" />
+          <span v-if="friendRequestsStore.incomingCount" class="badge">
+            {{ friendRequestsStore.incomingCount }}
+          </span>
         </div>
       </div>
       <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
