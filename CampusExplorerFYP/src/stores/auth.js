@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useFriendRequestsStore } from "./friendRequests";
+import { useNotificationsStore } from "./notifications";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
@@ -30,12 +31,16 @@ export const useAuthStore = defineStore("auth", {
         this.user = user;
         this.isAuthenticated = !!user;
         this.ready = true;
-        // ✅ subscribe/unsubscribe here (best place)
+
         const friendRequestsStore = useFriendRequestsStore();
+        const notificationsStore = useNotificationsStore();
+
         if (user) {
           friendRequestsStore.subscribeIncomingRequests();
+          notificationsStore.start();
         } else {
           friendRequestsStore.unsubscribeIncomingRequests();
+          notificationsStore.stop();
         }
       });
     },

@@ -7,7 +7,6 @@ import { onMounted } from "vue";
 import { useProgressStore } from "@/stores/progress";
 import { useFriendsStore } from "@/stores/friends";
 import Activity from "@/Activity.vue";
-import Toast from "@/Toast.vue";
 import { useFriendRequestsStore } from "@/stores/friendRequests";
 const friendRequestsStore = useFriendRequestsStore();
 const friendsStore = useFriendsStore();
@@ -42,7 +41,6 @@ onMounted(async () => {
 
 <template>
     <TopBar />
-    <Toast ref="toastRef" />
     <h1>Leaderboard</h1>
 
     <div class="leaderboard-table">

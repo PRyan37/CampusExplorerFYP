@@ -81,15 +81,6 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
           },
         );
 
-        // fallback: also subscribe to the whole collection for debugging only (remove in production)
-        this._unsubDebugAll = onSnapshot(
-          incomingRequestRef,
-          (snapAll) => {
-            console.log("[friendRequests] DEBUG all docs count:", snapAll.docs.length);
-          },
-          (e) => console.error("[friendRequests] DEBUG all onSnapshot error:", e),
-        );
-
         console.log("[friendRequests] subscribed, waiting for changes...");
       } catch (e) {
         console.error("[friendRequests] subscribe error:", e);

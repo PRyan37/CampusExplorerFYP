@@ -39,3 +39,42 @@ setGlobalOptions({ maxInstances: 10 });
 //     res.status(200).send("Hello from Firebase!");
 //   });
 // });
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const admin = require("firebase-admin");
+
+if (!admin.apps.length) admin.initializeApp();
+
+exports.onFriendRequestCreated = onDocumentCreated("friendRequests/{requestId}", async (event) => {
+  try {
+    const snap = event.data;
+    if (!snap) return null;
+
+    const data = snap.data();
+    const requestId = snap.id;
+    console.log("[functions] onFriendRequestCreated triggered for id:", requestId);
+
+    const toUserId = data.toUserId;
+    const fromUserId = data.fromUserId;
+    if (!toUserId || !fromUserId) return null;
+
+    let fromName = data.fromEmail || "someone";
+
+    const notifRef = admin.firestore().doc(`notifications/${toUserId}/items/${requestId}`);
+
+    await notifRef.set({
+      type: "FRIEND_REQUEST",
+      requestId,
+      fromUserId,
+      fromName,
+      message: `New friend request from ${fromName}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    });
+
+    console.log("[functions] notification written for toUserId:", toUserId);
+    return null;
+  } catch (err) {
+    console.error("[functions] onFriendRequestCreated ERROR:", err);
+    throw err;
+  }
+});
