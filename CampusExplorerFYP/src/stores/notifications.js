@@ -31,7 +31,7 @@ export const useNotificationsStore = defineStore("notifications", {
         const newest = this.items[0];
         if (newest && newest.id !== prevFirst) {
           console.log("[notifications] calling toast for:", newest.message);
-          useToastStore().show(newest.message);
+          useToastStore().show(newest.message, { type: "friendRequest", duration: 5000 });
         }
       });
     },

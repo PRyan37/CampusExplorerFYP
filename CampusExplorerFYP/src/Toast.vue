@@ -1,24 +1,20 @@
 <script setup>
-import { ref } from "vue";
-
-const toasts = ref([]);
-
-function showToast(message) {
-    console.log("[Toast] showToast", message);
-    const id = Date.now() + Math.random();
-    toasts.value.push({ id, message });
-
-    setTimeout(() => {
-        toasts.value = toasts.value.filter((t) => t.id !== id);
-    }, 2500);
-}
-defineExpose({ showToast });
+import { watch } from "vue";
+import { useToastStore } from "@/stores/toast";
+const toast = useToastStore();
+watch(
+    () => toast.toasts.length,
+    (n, o) => {
+        console.log("[Toast.vue] toasts length changed", o, "->", n, toast.toasts);
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
-    <div class="toast-box">
-        <div v-for="t in toasts" :key="t.id" class="toast">
-            {{ t.message }} <i class="fa-solid fa-check"></i>
+    <div class="toast-box" v-if="toast.toasts.length">
+        <div v-for="t in toast.toasts" :key="t.id" class="toast">
+            {{ t.message }}
         </div>
     </div>
 </template>

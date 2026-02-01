@@ -1,11 +1,11 @@
 <script setup>
-import Toasty from "./Toasty.vue";
+import Toast from "./Toast.vue";
 </script>
 
 <template>
   <RouterView />
   <div class="ui-overlay">
-    <Toasty />
+    <Toast />
   </div>
 </template>
 

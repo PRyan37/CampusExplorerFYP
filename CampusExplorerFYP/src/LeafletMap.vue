@@ -1,8 +1,5 @@
 <template>
   <audio ref="audioEl" :src="discoverySfx" preload="auto"></audio>
-  <div class="ui-overlay">
-    <Toast ref="toastRef" />
-  </div>
   <div class="container-fluid py-3">
     <div class="row">
       <div class="col-12 col-md-3 mb-3">
@@ -25,7 +22,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import Toast from "./Toast.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import beerImg from "./assets/BeerIcon.png";
@@ -37,9 +33,10 @@ import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import discoverySfx from "./assets/sounds/discoverySound.mp3";
+import { useToastStore } from "./stores/toast";
 
 const auth = useAuthStore();
-const toastRef = ref(null);
+const toast = useToastStore();
 
 function onDiscoveryUnlocked(name) {
   playDiscoverySound();
@@ -49,7 +46,7 @@ function onDiscoveryUnlocked(name) {
     origin: { y: 0.6 },
   });
   console.log("[LeafletMap] onDiscoveryUnlocked:", name);
-  toastRef.value?.showToast(`You discovered: ${name}!`);
+  toast.show(`You discovered: ${name}!`, { type: "discovery", duration: 5000 });
 }
 const mapEl = ref(null);
 let map = null;
@@ -347,13 +344,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.ui-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 9998;
-  pointer-events: none;
-}
-
 :deep(#map.leaflet-container) {
   height: 60vh;
   min-height: 400px;
