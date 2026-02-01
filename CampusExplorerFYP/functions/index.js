@@ -7,14 +7,12 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
 const cors = require("cors")({
   origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
 });
-
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -41,4 +39,42 @@ setGlobalOptions({ maxInstances: 10 });
 //     res.status(200).send("Hello from Firebase!");
 //   });
 // });
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const admin = require("firebase-admin");
 
+if (!admin.apps.length) admin.initializeApp();
+
+exports.onFriendRequestCreated = onDocumentCreated("friendRequests/{requestId}", async (event) => {
+  try {
+    const snap = event.data;
+    if (!snap) return null;
+
+    const data = snap.data();
+    const requestId = snap.id;
+    console.log("[functions] onFriendRequestCreated triggered for id:", requestId);
+
+    const toUserId = data.toUserId;
+    const fromUserId = data.fromUserId;
+    if (!toUserId || !fromUserId) return null;
+
+    let fromName = data.fromEmail || "someone";
+
+    const notifRef = admin.firestore().doc(`notifications/${toUserId}/items/${requestId}`);
+
+    await notifRef.set({
+      type: "FRIEND_REQUEST",
+      requestId,
+      fromUserId,
+      fromName,
+      message: `New friend request from ${fromName}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    });
+
+    console.log("[functions] notification written for toUserId:", toUserId);
+    return null;
+  } catch (err) {
+    console.error("[functions] onFriendRequestCreated ERROR:", err);
+    throw err;
+  }
+});
