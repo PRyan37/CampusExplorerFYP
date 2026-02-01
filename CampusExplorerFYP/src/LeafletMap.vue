@@ -141,6 +141,7 @@ function getCurrentLocation() {
     (position) => {
       console.log("[LeafletMap] getCurrentPosition success", position);
       success(position);
+      map.setView([position.coords.latitude, position.coords.longitude]);
     },
     (err) => {
       console.error("[LeafletMap] getCurrentPosition error", err);
@@ -270,7 +271,6 @@ function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   if (!zoomed) {
     zoomed = map.fitBounds(circle.getBounds());
   }
-  map.setView([latitude, longitude]);
 }
 
 async function success(position) {

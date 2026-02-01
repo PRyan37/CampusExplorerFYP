@@ -37,6 +37,10 @@ onMounted(async () => {
 
     leaderboard.value = leaderboardEntries.sort((a, b) => b.score - a.score);
 });
+function acceptRequest(requestId) {
+    friendRequestsStore.acceptFriendRequest(requestId);
+    friendsStore.fetchFriends();
+}
 </script>
 
 <template>
@@ -59,6 +63,15 @@ onMounted(async () => {
             </tbody>
         </table>
     </div>
+    <h2>Friend Requests</h2>
+    <ul>
+        <li v-for="request in friendRequestsStore.incomingRequests" :key="request.id">
+            {{ request.fromEmail }} wants to be your friend.
+            <button @click="acceptRequest(request.id)">Accept</button>
+            <button @click="friendRequestsStore.rejectFriendRequest(request.id)">Reject</button>
+        </li>
+    </ul>
+
     <friendsList />
     <activity />
 </template>

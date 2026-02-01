@@ -53,12 +53,12 @@ function goHome() {
         <div @click="openFriendsModal" class="buttons" :class="{ active: isFriendsModal }">
           <b>+</b>
         </div>
-        <div @click="openNotificationsPopUp" class="buttons" :class="{ active: isNotifications }">
+        <!-- <div @click="openNotificationsPopUp" class="buttons" :class="{ active: isNotifications }">
           <img :src="bellImg" alt="Notifications" />
           <span v-if="friendRequestsStore.incomingCount" class="badge">
             {{ friendRequestsStore.incomingCount }}
           </span>
-        </div>
+        </div> -->
       </div>
       <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
       <FriendsModal v-if="showFriendsModal" @close-friend-modal="closeFriendsModal" />

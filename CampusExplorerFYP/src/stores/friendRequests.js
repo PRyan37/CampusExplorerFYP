@@ -2,12 +2,14 @@ import { defineStore } from "pinia";
 import { db } from "../firebase/Firebase";
 import { useAuthStore } from "./auth";
 import { useFriendsStore } from "./friends";
+import { useToastStore } from "./toast";
 import {
   collection,
   query,
   where,
   getDocs,
-  addDoc,
+  getDoc,
+  setDoc,
   deleteDoc,
   doc,
   serverTimestamp,
@@ -134,33 +136,64 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       }
     },
     async sendFriendRequest(toEmail) {
-      console.log("[friendRequests.js]Sending friend request to:", toEmail);
       const auth = useAuthStore();
+      const friendsStore = useFriendsStore();
       if (!auth.user) return;
+
       this.loading = true;
       this.error = null;
 
-      const usersRef = collection(db, "users");
-      const qUser = query(usersRef, where("email", "==", toEmail));
-      const snapUser = await getDocs(qUser);
-
-      if (snapUser.empty) {
-        throw new Error("No user found with that email");
-      }
-      const friendDoc = snapUser.docs[0];
-      const toUserId = friendDoc.id;
       try {
-        const outgoingRequestRef = collection(db, "friendRequests");
-        await addDoc(outgoingRequestRef, {
-          fromUserId: auth.user.uid,
-          fromEmail: auth.user.email,
-          status: "pending",
-          toUserId: toUserId,
-          toEmail,
-          timestamp: serverTimestamp(),
-        });
+        // 1) Find recipient user by email
+        const usersRef = collection(db, "users");
+        const qUser = query(usersRef, where("email", "==", toEmail));
+        const snapUser = await getDocs(qUser);
+
+        if (snapUser.empty) throw new Error("No user found with that email");
+
+        const friendDoc = snapUser.docs[0];
+        const toUserId = friendDoc.id;
+
+        // Optional: block sending to yourself
+        if (toUserId === auth.user.uid) {
+          useToastStore().show("You can't friend-request yourself", { type: "error" });
+          throw new Error("You can't friend-request yourself");
+        }
+
+        // 2) Deterministic request id
+        const requestId = `${auth.user.uid}_${toUserId}`;
+        const requestRef = doc(db, "friendRequests", requestId);
+
+        // 3) Check if request already exists
+        const existing = await getDoc(requestRef);
+        if (existing.exists()) {
+          const data = existing.data();
+          if (data.status === "pending") {
+            useToastStore().show("Friend request already sent and pending.", { type: "error" });
+            throw new Error("Friend request already sent and pending.");
+          }
+        }
+        const alreadyFriendLocal = friendsStore.friendsList?.some((f) => f.friendId === toUserId);
+        if (alreadyFriendLocal) {
+          useToastStore().show("You're already friends with this user.", { type: "error" });
+          throw new Error("You're already friends with this user.");
+        }
+        // 4) Create/update request
+        await setDoc(
+          requestRef,
+          {
+            fromUserId: auth.user.uid,
+            fromEmail: auth.user.email,
+            toUserId,
+            toEmail,
+            status: "pending",
+            timestamp: serverTimestamp(),
+          },
+          { merge: true },
+        );
       } catch (e) {
         this.error = e.message;
+        throw e;
       } finally {
         this.loading = false;
       }
