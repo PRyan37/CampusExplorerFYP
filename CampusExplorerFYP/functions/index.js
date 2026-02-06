@@ -78,3 +78,169 @@ exports.onFriendRequestCreated = onDocumentCreated("friendRequests/{requestId}",
     throw err;
   }
 });
+
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+
+if (!admin.apps.length) admin.initializeApp();
+const db = admin.firestore();
+
+exports.sendFriendRequest = onCall(async (request) => {
+  const { data, auth } = request;
+
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+  // who is sending the request
+  const fromUserId = auth.uid;
+  const fromEmail = auth.token.email || null;
+
+  const toEmailRaw = data && data.toEmail;
+  const toEmail = (toEmailRaw || "").trim().toLowerCase();
+  if (!toEmail) throw new HttpsError("invalid-argument", "toEmail is required.");
+
+  // Find target user by email
+  const usersRef = db.collection("users");
+  const snap = await usersRef.where("email", "==", toEmail).limit(1).get();
+  if (snap.empty) throw new HttpsError("not-found", "No user found with that email.");
+
+  const friendDoc = snap.docs[0];
+  const toUserId = friendDoc.id;
+  // cannot send emails to yourself
+  if (toUserId === fromUserId) {
+    throw new HttpsError("failed-precondition", "You cannot add yourself as a friend.");
+  }
+
+  const reqId = `${fromUserId}_${toUserId}`;
+  const reverseReqId = `${toUserId}_${fromUserId}`;
+
+  const reqRef = db.collection("friendRequests").doc(reqId);
+  const reverseRef = db.collection("friendRequests").doc(reverseReqId);
+
+  //checking are they are already friends
+  const alreadyFriends = await db
+    .collection("friends")
+    .where("userId", "==", fromUserId)
+    .where("friendId", "==", toUserId)
+    .limit(1)
+    .get();
+
+  if (!alreadyFriends.empty) {
+    throw new HttpsError("failed-precondition", "You are already friends.");
+  }
+
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(reqRef);
+    if (existing.exists) {
+      const status = existing.data()?.status;
+      if (status === "pending") {
+        throw new HttpsError("failed-precondition", "Friend request already sent.");
+      }
+      throw new HttpsError("failed-precondition", "A request record already exists.");
+    }
+
+    const reverse = await tx.get(reverseRef);
+    if (reverse.exists && reverse.data()?.status === "pending") {
+      throw new HttpsError(
+        "failed-precondition",
+        "This user already sent you a friend request. Check your incoming requests.",
+      );
+    }
+
+    tx.set(reqRef, {
+      fromUserId,
+      fromEmail,
+      toUserId,
+      toEmail,
+      status: "pending",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { requestId: reqId };
+});
+
+exports.respondToFriendRequest = onCall(async (request) => {
+  const { data, auth } = request;
+
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+  // who is reponding to the request
+  const userId = auth.uid;
+  const requestId = data && data.requestId;
+  const action = (data && data.action) || "";
+
+  if (!requestId || !["accept", "reject"].includes(action)) {
+    throw new HttpsError("invalid-argument", "requestId and valid action are required.");
+  }
+
+  try {
+    const reqRef = db.collection("friendRequests").doc(requestId);
+    const reqSnap = await reqRef.get();
+
+    if (!reqSnap.exists) {
+      throw new HttpsError("not-found", "Friend request not found.");
+    }
+
+    const reqData = reqSnap.data();
+
+    // only the recipient can respond
+    if (reqData.toUserId !== userId) {
+      throw new HttpsError("permission-denied", "You cannot respond to this request.");
+    }
+
+    if (reqData.status !== "pending") {
+      throw new HttpsError("failed-precondition", "Request is not pending.");
+    }
+
+    if (action === "reject") {
+      await reqRef.delete();
+      console.log("[respondToFriendRequest] rejected:", requestId);
+      return { status: "rejected" };
+    }
+
+    // action === "accept"
+    const fromUserId = reqData.fromUserId;
+    const toUserId = reqData.toUserId;
+
+    const fromEmail = reqData.fromEmail || null;
+    const toEmail = reqData.toEmail || null;
+
+    const batch = db.batch();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    const friendsRef = db.collection("friends");
+
+    // Create two documents for bidirectional friendship
+    batch.set(
+      friendsRef.doc(`${fromUserId}_${toUserId}`),
+      {
+        userId: fromUserId,
+        userEmail: fromEmail,
+        friendId: toUserId,
+        friendEmail: toEmail,
+        createdAt: now,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      friendsRef.doc(`${toUserId}_${fromUserId}`),
+      {
+        userId: toUserId,
+        userEmail: toEmail,
+        friendId: fromUserId,
+        friendEmail: fromEmail,
+        createdAt: now,
+      },
+      { merge: true },
+    );
+
+    batch.delete(reqRef);
+
+    await batch.commit();
+    return { status: "accepted" };
+  } catch (err) {
+    console.error("[respondToFriendRequest] ERROR:", err);
+    if (err instanceof HttpsError) {
+      throw err;
+    }
+    throw new HttpsError("internal", "Failed to respond to friend request.");
+  }
+});

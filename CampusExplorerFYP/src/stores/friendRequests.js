@@ -1,21 +1,10 @@
 import { defineStore } from "pinia";
 import { db } from "../firebase/Firebase";
 import { useAuthStore } from "./auth";
-import { useFriendsStore } from "./friends";
-import { useToastStore } from "./toast";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  setDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  orderBy,
-  onSnapshot,
-} from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/firebase/Firebase";
+const functions = getFunctions(app);
 
 export const useFriendRequestsStore = defineStore("friendRequests", {
   state: () => ({
@@ -136,105 +125,50 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       }
     },
     async sendFriendRequest(toEmail) {
-      const auth = useAuthStore();
-      const friendsStore = useFriendsStore();
-      if (!auth.user) return;
-
       this.loading = true;
       this.error = null;
-
+      const auth = useAuthStore();
+      if (!auth.user) return;
       try {
-        // 1) Find recipient user by email
-        const usersRef = collection(db, "users");
-        const qUser = query(usersRef, where("email", "==", toEmail));
-        const snapUser = await getDocs(qUser);
-
-        if (snapUser.empty) throw new Error("No user found with that email");
-
-        const friendDoc = snapUser.docs[0];
-        const toUserId = friendDoc.id;
-
-        // Optional: block sending to yourself
-        if (toUserId === auth.user.uid) {
-          useToastStore().show("You can't friend-request yourself", { type: "error" });
-          throw new Error("You can't friend-request yourself");
-        }
-
-        // 2) Deterministic request id
-        const requestId = `${auth.user.uid}_${toUserId}`;
-        const requestRef = doc(db, "friendRequests", requestId);
-
-        // 3) Check if request already exists
-        const existing = await getDoc(requestRef);
-        if (existing.exists()) {
-          const data = existing.data();
-          if (data.status === "pending") {
-            useToastStore().show("Friend request already sent and pending.", { type: "error" });
-            throw new Error("Friend request already sent and pending.");
-          }
-        }
-        const alreadyFriendLocal = friendsStore.friendsList?.some((f) => f.friendId === toUserId);
-        if (alreadyFriendLocal) {
-          useToastStore().show("You're already friends with this user.", { type: "error" });
-          throw new Error("You're already friends with this user.");
-        }
-        // 4) Create/update request
-        await setDoc(
-          requestRef,
-          {
-            fromUserId: auth.user.uid,
-            fromEmail: auth.user.email,
-            toUserId,
-            toEmail,
-            status: "pending",
-            timestamp: serverTimestamp(),
-          },
-          { merge: true },
-        );
+        const call = httpsCallable(functions, "sendFriendRequest");
+        await call({ toEmail });
       } catch (e) {
-        this.error = e.message;
+        this.error = e.message || String(e);
         throw e;
       } finally {
         this.loading = false;
       }
     },
+
     async acceptFriendRequest(requestId) {
-      console.log("[friendRequests.js] Accepting friend request:", requestId);
-      const auth = useAuthStore();
-      if (!auth.user) return;
       this.loading = true;
       this.error = null;
-      const friendsStore = useFriendsStore();
-      const req = this.incomingRequests.find((r) => r.id === requestId);
-      if (!req) {
-        console.warn("[friendRequests.js] Request not found in state:", requestId);
-        return;
-      }
+      const auth = useAuthStore();
+      if (!auth.user) return;
       try {
-        await friendsStore.addFriend(req.fromUserId, req.fromEmail);
+        const call = httpsCallable(functions, "respondToFriendRequest");
+        await call({ requestId, action: "accept" });
       } catch (e) {
-        this.error = e.message;
+        this.error = e.message || String(e);
+        throw e;
       } finally {
         this.loading = false;
-        const requestDocRef = doc(db, "friendRequests", requestId);
-        await deleteDoc(requestDocRef);
       }
     },
+
     async rejectFriendRequest(requestId) {
-      const auth = useAuthStore();
-      if (!auth.user) return;
       this.loading = true;
       this.error = null;
-
+      const auth = useAuthStore();
+      if (!auth.user) return;
       try {
-        const requestDocRef = doc(db, "friendRequests", requestId);
-        await deleteDoc(requestDocRef);
+        const call = httpsCallable(functions, "respondToFriendRequest");
+        await call({ requestId, action: "reject" });
       } catch (e) {
-        this.error = e.message;
+        this.error = e.message || String(e);
+        throw e;
       } finally {
         this.loading = false;
-        this.fetchIncomingRequests();
-        this.fetchOutgoingRequests();
       }
     },
   },

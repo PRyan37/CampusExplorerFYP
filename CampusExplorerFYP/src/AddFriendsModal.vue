@@ -6,12 +6,16 @@ const friendsStore = useFriendsStore();
 const friendRequestsStore = useFriendRequestsStore();
 const emit = defineEmits(["closeFriendModal"]);
 const email = ref("");
+const isSubmitting = ref(false);
 async function onSubmit() {
   try {
+    isSubmitting.value = true;
     await friendRequestsStore.sendFriendRequest(email.value);
     emit("closeFriendModal");
   } catch (e) {
     console.error("addFriend failed:", e);
+  } finally {
+    isSubmitting.value = false;
   }
 }
 </script>
@@ -22,7 +26,8 @@ async function onSubmit() {
       <h2>Add Friend</h2>
       <form @submit.prevent="onSubmit">
         <label for="email">Enter the email of the user you would like to add</label>
-        <input id="email" type="email" v-model.trim="email" autocomplete="email" required />
+        <input id="email" type="email" v-model.trim="email" autocomplete="email" required
+          :disabled="friendRequestsStore.loading || isSubmitting" />
         <button type="submit">Add Friend</button>
         <p class="error" v-if="friendsStore.error">{{ friendsStore.error }}</p>
       </form>
