@@ -4,11 +4,11 @@ import { db } from "@/firebase/Firebase";
 import { useAuthStore } from "./auth";
 import { useToastStore } from "./toast";
 
-let unsub = null; // module‑level, shared by this store
+let unsub = null;
 
 export const useNotificationsStore = defineStore("notifications", {
   state: () => ({
-    items: [],
+    inbox: [],
   }),
 
   actions: {
@@ -18,28 +18,50 @@ export const useNotificationsStore = defineStore("notifications", {
       if (!auth.user) return;
 
       const q = query(
-        collection(db, "notifications", auth.user.uid, "items"),
+        collection(db, "notifications", auth.user.uid, "inbox"),
         orderBy("createdAt", "desc"),
       );
 
-      // unsubscribe if already subscribed
       unsub?.();
 
       unsub = onSnapshot(q, (snap) => {
-        const prevFirst = this.items[0]?.id;
-        this.items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const newest = this.items[0];
-        if (newest && newest.id !== prevFirst) {
-          console.log("[notifications] calling toast for:", newest.message);
-          useToastStore().show(newest.message, { type: "friendRequest", duration: 5000 });
+        console.log("[notifications] snapshot received, size:", snap.size);
+        const prevFirst = this.inbox[0]?.id;
+        this.inbox = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const newest = this.inbox[0];
+
+        if (!newest) {
+          console.log("[notifications] inbox empty");
+          return;
         }
+
+        if (newest.id === prevFirst) {
+          console.log("[notifications] no new notifications");
+          return;
+        }
+
+        console.log("[notifications] new notification:", newest);
+
+        const toast = useToastStore();
+        let toastType = "discovery";
+
+        if (
+          newest.type === "FRIEND_REQUEST" ||
+          newest.type === "FRIEND_REQUEST_SENT" ||
+          newest.type === "FRIEND_REQUEST_ACCEPTED"
+        ) {
+          toastType = "friendRequest";
+        }
+
+        toast.show(newest.message, { type: toastType, duration: 5000 });
       });
     },
 
     stop() {
+      console.log("[notifications] stopping listener");
       unsub?.();
       unsub = null;
-      this.items = [];
+      this.inbox = [];
     },
   },
 });

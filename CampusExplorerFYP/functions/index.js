@@ -39,42 +39,226 @@ setGlobalOptions({ maxInstances: 10 });
 //     res.status(200).send("Hello from Firebase!");
 //   });
 // });
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 
 if (!admin.apps.length) admin.initializeApp();
 
-exports.onFriendRequestCreated = onDocumentCreated("friendRequests/{requestId}", async (event) => {
-  try {
-    const snap = event.data;
-    if (!snap) return null;
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
-    const data = snap.data();
-    const requestId = snap.id;
-    console.log("[functions] onFriendRequestCreated triggered for id:", requestId);
+if (!admin.apps.length) admin.initializeApp();
+const db = admin.firestore();
 
-    const toUserId = data.toUserId;
-    const fromUserId = data.fromUserId;
-    if (!toUserId || !fromUserId) return null;
+exports.sendFriendRequest = onCall(async (request) => {
+  const { data, auth } = request;
 
-    let fromName = data.fromEmail || "someone";
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+  // who is sending the request
+  const fromUserId = auth.uid;
+  const fromEmail = auth.token.email || null;
 
-    const notifRef = admin.firestore().doc(`notifications/${toUserId}/items/${requestId}`);
+  const toEmailRaw = data && data.toEmail;
+  const toEmail = (toEmailRaw || "").trim().toLowerCase();
+  if (!toEmail) throw new HttpsError("invalid-argument", "toEmail is required.");
 
-    await notifRef.set({
+  // Find target user by email
+  const usersRef = db.collection("users");
+  const snap = await usersRef.where("email", "==", toEmail).limit(1).get();
+  if (snap.empty) throw new HttpsError("not-found", "No user found with that email.");
+
+  const friendDoc = snap.docs[0];
+  const toUserId = friendDoc.id;
+  // cannot send emails to yourself
+  if (toUserId === fromUserId) {
+    throw new HttpsError("failed-precondition", "You cannot add yourself as a friend.");
+  }
+
+  const requestId = `${fromUserId}_${toUserId}`;
+  const reverseRequestId = `${toUserId}_${fromUserId}`;
+
+  const reqRef = db.collection("friendRequests").doc(requestId);
+  const reverseRef = db.collection("friendRequests").doc(reverseRequestId);
+
+  //checking are they are already friends
+  const alreadyFriends = await db
+    .collection("friends")
+    .where("userId", "==", fromUserId)
+    .where("friendId", "==", toUserId)
+    .limit(1)
+    .get();
+
+  if (!alreadyFriends.empty) {
+    throw new HttpsError("failed-precondition", "You are already friends.");
+  }
+  const toNotifRef = admin.firestore().collection(`notifications/${toUserId}/inbox`).doc();
+
+  const fromNotifRef = admin.firestore().collection(`notifications/${fromUserId}/inbox`).doc();
+
+  await db.runTransaction(async (tx) => {
+    const existing = await tx.get(reqRef);
+    if (existing.exists) {
+      const status = existing.data()?.status;
+      if (status === "pending") {
+        throw new HttpsError("failed-precondition", "Friend request already sent.");
+      }
+      throw new HttpsError("failed-precondition", "A request record already exists.");
+    }
+
+    const reverse = await tx.get(reverseRef);
+    if (reverse.exists && reverse.data()?.status === "pending") {
+      throw new HttpsError(
+        "failed-precondition",
+        "This user already sent you a friend request. Check your incoming requests.",
+      );
+    }
+
+    tx.set(reqRef, {
+      fromUserId,
+      fromEmail,
+      toUserId,
+      toEmail,
+      status: "pending",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 2) receiver notification
+    tx.set(toNotifRef, {
       type: "FRIEND_REQUEST",
       requestId,
+      ownerId: toUserId,
+      ownerEmail: toEmail,
       fromUserId,
-      fromName,
-      message: `New friend request from ${fromName}`,
+      fromName: fromEmail || "someone",
+      message: `New friend request from ${fromEmail || "someone"}`,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       read: false,
     });
 
-    console.log("[functions] notification written for toUserId:", toUserId);
-    return null;
+    // 3) sender notification
+    tx.set(fromNotifRef, {
+      type: "FRIEND_REQUEST_SENT",
+      requestId,
+      ownerId: fromUserId,
+      ownerEmail: fromEmail,
+      toUserId,
+      toEmail,
+      message: `Friend request sent to ${toEmail}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    });
+  });
+
+  return { requestId: requestId };
+});
+
+exports.respondToFriendRequest = onCall(async (request) => {
+  const { data, auth } = request;
+
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+  // who is reponding to the request
+  const userId = auth.uid;
+  const requestId = data && data.requestId;
+  const action = (data && data.action) || "";
+
+  if (!requestId || !["accept", "reject"].includes(action)) {
+    throw new HttpsError("invalid-argument", "requestId and valid action are required.");
+  }
+
+  try {
+    const reqRef = db.collection("friendRequests").doc(requestId);
+    const reqSnap = await reqRef.get();
+
+    if (!reqSnap.exists) {
+      throw new HttpsError("not-found", "Friend request not found.");
+    }
+
+    const reqData = reqSnap.data();
+
+    // only the recipient can respond
+    if (reqData.toUserId !== userId) {
+      throw new HttpsError("permission-denied", "You cannot respond to this request.");
+    }
+
+    if (reqData.status !== "pending") {
+      throw new HttpsError("failed-precondition", "Request is not pending.");
+    }
+
+    if (action === "reject") {
+      await reqRef.delete();
+      console.log("[respondToFriendRequest] rejected:", requestId);
+      return { status: "rejected" };
+    }
+
+    // action === "accept"
+    const fromUserId = reqData.fromUserId;
+    const toUserId = reqData.toUserId;
+
+    const fromEmail = reqData.fromEmail || null;
+    const toEmail = reqData.toEmail || null;
+
+    const batch = db.batch();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    const friendsRef = db.collection("friends");
+
+    // Create two documents for bidirectional friendship
+    batch.set(
+      friendsRef.doc(`${fromUserId}_${toUserId}`),
+      {
+        userId: fromUserId,
+        userEmail: fromEmail,
+        friendId: toUserId,
+        friendEmail: toEmail,
+        createdAt: now,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      friendsRef.doc(`${toUserId}_${fromUserId}`),
+      {
+        userId: toUserId,
+        userEmail: toEmail,
+        friendId: fromUserId,
+        friendEmail: fromEmail,
+        createdAt: now,
+      },
+      { merge: true },
+    );
+
+    batch.delete(reqRef);
+    const toNotifRef = admin.firestore().collection(`notifications/${toUserId}/inbox`).doc(); // random id
+    const fromNotifRef = admin.firestore().collection(`notifications/${fromUserId}/inbox`).doc(); // random id
+
+    await toNotifRef.set({
+      type: "FRIEND_REQUEST_ACCEPTED",
+      requestId,
+      ownerId: toUserId,
+      ownerEmail: toEmail,
+      fromUserId,
+      fromName: fromEmail,
+      message: `You are now friends with ${fromEmail}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    });
+
+    await fromNotifRef.set({
+      type: "FRIEND_REQUEST_ACCEPTED",
+      requestId,
+      ownerId: fromUserId,
+      ownerEmail: fromEmail,
+      fromUserId,
+      fromName: toEmail,
+      message: `You are now friends with ${toEmail}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    });
+    await batch.commit();
+    return { status: "accepted" };
   } catch (err) {
-    console.error("[functions] onFriendRequestCreated ERROR:", err);
-    throw err;
+    console.error("[respondToFriendRequest] ERROR:", err);
+    if (err instanceof HttpsError) {
+      throw err;
+    }
+    throw new HttpsError("internal", "Failed to respond to friend request.");
   }
 });

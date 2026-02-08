@@ -33,16 +33,16 @@ function playSound(type, enabled) {
 export const useToastStore = defineStore("toast", {
   state: () => ({
     toasts: [],
-    soundEnabled: true, // user can toggle
+    soundEnabled: true,
   }),
 
   actions: {
     /**
      * @param {string} message
      * @param {object} opts
-     * @param {"success"|"error"|"warning"|"info"|"default"} [opts.type="default"]
+     * @param {"error"|"friendRequest"|"discovery"} [opts.type]
      * @param {number} [opts.duration=10000]
-     * @param {boolean} [opts.sound=true]  // per-toast override
+     * @param {boolean} [opts.sound=true]
      */
     show(message, opts = {}) {
       const { type = "default", duration = 10000, sound = true } = opts;

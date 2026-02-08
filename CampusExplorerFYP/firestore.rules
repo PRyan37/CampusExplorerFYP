@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    // ---------------- users ----------------
+    match /users/{userId} {
+      // choose: signed-in users can read basic profiles
+      allow read: if signedIn();
+
+      // only owner can write their profile
+      allow create, update: if signedIn() && userId == uid();
+      allow delete: if false;
+    }
+
+    // ------------- friendRequests -------------
+    match /friendRequests/{requestId} {
+      // only sender or recipient can read
+      allow get, list: if signedIn()
+        && (resource.data.fromUserId == uid() || resource.data.toUserId == uid());
+
+      // client cannot create/update/delete (your callable functions do this)
+      allow create, update, delete: if false;
+    }
+
+    // ---------------- friends ----------------
+    // your function writes docs like:
+    // { userId, friendId, userEmail, friendEmail, createdAt }
+    match /friends/{friendDocId} {
+      // user can read only docs where they are userId
+      allow get, list: if signedIn() && resource.data.userId == uid();
+
+      // client cannot create/update/delete (function does it)
+      allow create, update, delete: if false;
+    }
+
+    // ------------ notifications ---------------
+    // your trigger writes to:
+    // notifications/{toUserId}/items/{requestId}
+    match /notifications/{userId}/items/{notifId} {
+      // only owner reads
+      allow get, list: if signedIn() && userId == uid();
+
+      // allow owner to mark read (optional)
+      allow update: if signedIn()
+        && userId == uid()
+        // only allow changing 'read' field, keep others same
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+
+      // client cannot create/delete notifications
+      allow create, delete: if false;
+    }
+
+    // default deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    // Allow each user to read their own notifications
+    match /notifications/{userId}/inbox/{notifId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // write is only done by Cloud Functions with admin SDK,
+      // so usually we don't allow client writes:
+      allow write: if false;
+    }
+  }
+}

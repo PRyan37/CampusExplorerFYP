@@ -1,5 +1,4 @@
 <template>
-  <audio ref="audioEl" :src="discoverySfx" preload="auto"></audio>
   <div class="container-fluid py-3">
     <div class="row">
       <div class="col-12 col-md-3 mb-3">
@@ -32,14 +31,12 @@ import questionMarkImg from "./assets/QuestionMarkIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import discoverySfx from "./assets/sounds/discoverySound.mp3";
 import { useToastStore } from "./stores/toast";
 
 const auth = useAuthStore();
 const toast = useToastStore();
 
 function onDiscoveryUnlocked(name) {
-  playDiscoverySound();
   confetti({
     particleCount: 100,
     spread: 70,
@@ -61,17 +58,6 @@ const defaultIcon = L.Icon.extend({
   },
 });
 
-const audioEl = ref(null);
-
-function playDiscoverySound() {
-  const a = audioEl.value;
-  if (!a) return;
-
-  a.currentTime = 0;
-  a.play().catch((err) => {
-    console.warn("Audio play blocked:", err);
-  });
-}
 const unknownIcon = new defaultIcon({ iconUrl: questionMarkImg });
 
 const discoveredIcons = {
