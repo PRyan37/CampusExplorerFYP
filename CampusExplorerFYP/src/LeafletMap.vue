@@ -28,10 +28,13 @@ import computerImg from "./assets/ComputerIcon.png";
 import foodImg from "./assets/FoodIcon.png";
 import engineeringImg from "./assets/EngineeringIcon.png";
 import questionMarkImg from "./assets/QuestionMarkIcon.png";
+import bookImg from "./assets/BookIcon.png";
+import gymImg from "./assets/GymIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
+import { campusLocations } from "./config/campusLocations";
 
 const auth = useAuthStore();
 const toast = useToastStore();
@@ -65,13 +68,19 @@ const discoveredIcons = {
   computerScienceBuilding: new defaultIcon({ iconUrl: computerImg }),
   anBhiaLann: new defaultIcon({ iconUrl: foodImg }),
   engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
+  baileyAllen: new defaultIcon({ iconUrl: bookImg }),
+  kingfisher: new defaultIcon({ iconUrl: gymImg }),
 };
 
-let computerScienceBuildingMarker, anBhiaLannMarker, engineeringBuildingMarker, sultMarker;
-let computerScienceBuildingDiscovered = false;
-let anBhiaLannDiscovered = false;
-let engineeringBuildingDiscovered = false;
-let sultDiscovered = false;
+const discoveryFlags = {
+  computerScienceBuildingDiscovered: false,
+  anBhiaLannDiscovered: false,
+  engineeringBuildingDiscovered: false,
+  sultDiscovered: false,
+  baileyAllenDiscovered: false,
+  kingfisherDiscovered: false,
+};
+
 let watchId = null;
 let marker, circle, zoomed;
 
@@ -87,29 +96,6 @@ async function setDiscoveredOnUser(location) {
   }
 }
 
-async function discoverComputerScienceBuilding() {
-  computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-  computerScienceBuildingDiscovered = true;
-  await setDiscoveredOnUser("computerScienceBuildingDiscovered");
-}
-
-async function discoverAnBhiaLann() {
-  anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-  anBhiaLannDiscovered = true;
-  await setDiscoveredOnUser("anBhiaLannDiscovered");
-}
-
-async function discoverEngineeringBuilding() {
-  engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-  engineeringBuildingDiscovered = true;
-  await setDiscoveredOnUser("engineeringBuildingDiscovered");
-}
-
-async function discoverSult() {
-  sultMarker.setIcon(discoveredIcons.sult);
-  sultDiscovered = true;
-  await setDiscoveredOnUser("sultDiscovered");
-}
 function getCurrentLocation() {
   console.log("[LeafletMap] getCurrentLocation clicked");
 
@@ -144,12 +130,24 @@ function getCurrentLocation() {
 onMounted(async () => {
   await setUpMap();
 });
+const markersById = {};
+//add markers
+function addMarker(location, icon = unknownIcon) {
+  console.log("[LeafletMap] Adding marker:", location.name, location.coords);
+  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.name);
 
+  markersById[location.id] = marker;
+  return marker;
+}
+
+//setup map and markers
 async function initMapInstance() {
   await nextTick();
+
   setTimeout(() => {
     map.invalidateSize();
   }, 0);
+
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -157,46 +155,35 @@ async function initMapInstance() {
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
 
-  computerScienceBuildingMarker = L.marker([53.28027348648772, -9.058721065521242], {
-    icon: unknownIcon,
-  })
-    .addTo(map)
-    .bindPopup("Computer Science Building");
-
-  anBhiaLannMarker = L.marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon })
-    .addTo(map)
-    .bindPopup("Campus Cafeteria");
-
-  engineeringBuildingMarker = L.marker([53.283952206483185, -9.063854813575746], {
-    icon: unknownIcon,
-  })
-    .addTo(map)
-    .bindPopup("Engineering Building");
-
-  sultMarker = L.marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon })
-    .addTo(map)
-    .bindPopup("Come here for a beer!");
+  campusLocations.forEach((location) => addMarker(location));
+}
+function setMarkerIcon(id, icon) {
+  const marker = markersById[id]; // or markersById.get(id)
+  if (!marker) {
+    console.warn(`[LeafletMap] Marker not found for id: ${id}`);
+    return;
+  }
+  marker.setIcon(icon);
 }
 async function setUpMap() {
   await nextTick();
   if (!mapEl.value) return;
-  initMapInstance();
+  await initMapInstance();
+
   if (auth.user) {
     try {
       const userRef = doc(db, "users", auth.user.uid);
       const snap = await getDoc(userRef);
       if (snap.exists()) {
         const data = snap.data();
-        computerScienceBuildingDiscovered = !!data.computerScienceBuildingDiscovered;
-        anBhiaLannDiscovered = !!data.anBhiaLannDiscovered;
-        engineeringBuildingDiscovered = !!data.engineeringBuildingDiscovered;
-        sultDiscovered = !!data.sultDiscovered;
-        if (computerScienceBuildingDiscovered)
-          computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-        if (anBhiaLannDiscovered) anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-        if (engineeringBuildingDiscovered)
-          engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-        if (sultDiscovered) sultMarker.setIcon(discoveredIcons.sult);
+
+        campusLocations.forEach((loc) => {
+          const flag = !!data[loc.discoveryField];
+          discoveryFlags[loc.discoveryField] = flag;
+          if (flag) {
+            setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+          }
+        });
       }
     } catch (e) {
       console.error("[LeafletMap] Failed to load discovery state", e);
@@ -204,7 +191,6 @@ async function setUpMap() {
   }
 
   clickHandler = (e) => {
-    // e.latlng is a LatLng object {lat, lng}
     console.log("Map click:", e.latlng);
     success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
   };
@@ -216,27 +202,20 @@ async function setUpMap() {
     alert("Geolocation is not supported by this browser.");
   }
 }
-
 async function undiscoverAll() {
-  computerScienceBuildingDiscovered = false;
-  anBhiaLannDiscovered = false;
-  engineeringBuildingDiscovered = false;
-  sultDiscovered = false;
-
-  computerScienceBuildingMarker.setIcon(unknownIcon);
-  anBhiaLannMarker.setIcon(unknownIcon);
-  engineeringBuildingMarker.setIcon(unknownIcon);
-  sultMarker.setIcon(unknownIcon);
+  campusLocations.forEach((loc) => {
+    discoveryFlags[loc.discoveryField] = false;
+    setMarkerIcon(loc.id, unknownIcon);
+  });
 
   if (auth.user) {
     try {
       const userRef = doc(db, "users", auth.user.uid);
-      await updateDoc(userRef, {
-        computerScienceBuildingDiscovered: false,
-        anBhiaLannDiscovered: false,
-        engineeringBuildingDiscovered: false,
-        sultDiscovered: false,
+      const reset = {};
+      campusLocations.forEach((loc) => {
+        reset[loc.discoveryField] = false;
       });
+      await updateDoc(userRef, reset);
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
     }
@@ -258,53 +237,33 @@ function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
     zoomed = map.fitBounds(circle.getBounds());
   }
 }
-
 async function success(position) {
   console.log("[LeafletMap] success", position);
   if (!map) return;
+
   const latitude = position.coords.latitude;
   const longitude = position.coords.longitude;
   const accuracy = 20;
   updateUserLocationMarker(latitude, longitude, accuracy);
-  // 🔹 check discovery radius (~50m) around each POI
+
   const userLatLng = L.latLng(latitude, longitude);
   const discoverRadius = 50; // meters
 
-  if (
-    !computerScienceBuildingDiscovered &&
-    userLatLng.distanceTo(computerScienceBuildingMarker.getLatLng()) <= discoverRadius
-  ) {
-    computerScienceBuildingDiscovered = true;
-    computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-    await setDiscoveredOnUser("computerScienceBuildingDiscovered");
-    onDiscoveryUnlocked("Computer Science Building");
-  }
+  for (const loc of campusLocations) {
+    const marker = markersById[loc.id];
+    if (
+      !marker ||
+      discoveryFlags[loc.discoveryField] ||
+      userLatLng.distanceTo(marker.getLatLng()) > discoverRadius
+    ) {
+      continue;
+    }
 
-  if (
-    !anBhiaLannDiscovered &&
-    userLatLng.distanceTo(anBhiaLannMarker.getLatLng()) <= discoverRadius
-  ) {
-    anBhiaLannDiscovered = true;
-    anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-    await setDiscoveredOnUser("anBhiaLannDiscovered");
-    onDiscoveryUnlocked("An Bhia Lann");
-  }
-
-  if (
-    !engineeringBuildingDiscovered &&
-    userLatLng.distanceTo(engineeringBuildingMarker.getLatLng()) <= discoverRadius
-  ) {
-    engineeringBuildingDiscovered = true;
-    engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-    await setDiscoveredOnUser("engineeringBuildingDiscovered");
-    onDiscoveryUnlocked("Engineering Building");
-  }
-
-  if (!sultDiscovered && userLatLng.distanceTo(sultMarker.getLatLng()) <= discoverRadius) {
-    sultDiscovered = true;
-    sultMarker.setIcon(discoveredIcons.sult);
-    await setDiscoveredOnUser("sultDiscovered");
-    onDiscoveryUnlocked("Sult");
+    // mark as discovered
+    discoveryFlags[loc.discoveryField] = true;
+    setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+    await setDiscoveredOnUser(loc.discoveryField);
+    onDiscoveryUnlocked(loc.displayName);
   }
 }
 function error(err) {

@@ -1,83 +1,77 @@
 <script setup>
-import { ref } from 'vue'
-import { useAuthStore } from './stores/auth'
-import { onMounted, computed } from 'vue'
-import { useFriendsStore } from '@/stores/friends'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from './firebase/Firebase'
-const friendsStore = useFriendsStore()
+import { ref } from "vue";
+import { useAuthStore } from "./stores/auth";
+import { onMounted, computed } from "vue";
+import { useFriendsStore } from "@/stores/friends";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase/Firebase";
+import { campusLocations } from "./config/campusLocations";
 
-const auth = useAuthStore()
+const friendsStore = useFriendsStore();
 
-const recentDiscoveries = ref([])
-const selectedFriendId = ref('')
+const auth = useAuthStore();
+
+const recentDiscoveries = ref([]);
+const selectedFriendId = ref("");
+
+const discoveryMetaByField = campusLocations.reduce((acc, loc) => {
+    acc[loc.discoveryField] = {
+        displayName: loc.displayName,
+    };
+    return acc;
+}, {});
 
 const filteredDiscoveries = computed(() => {
-    if (!selectedFriendId.value) return recentDiscoveries.value
+    if (!selectedFriendId.value) return recentDiscoveries.value;
 
-
-    if (selectedFriendId.value === 'me') {
-        return recentDiscoveries.value.filter(
-            (e) => e.email === auth.user.email
-        )
+    if (selectedFriendId.value === "me") {
+        return recentDiscoveries.value.filter((e) => e.email === auth.user.email);
     }
 
+    const friend = friendsStore.friendsList.find((f) => f.friendId === selectedFriendId.value);
+    if (!friend) return [];
 
-    const friend = friendsStore.friendsList.find(
-        (f) => f.friendId === selectedFriendId.value
-    )
-    if (!friend) return []
-
-    return recentDiscoveries.value.filter(
-        (e) => e.email === friend.friendEmail
-    )
-})
+    return recentDiscoveries.value.filter((e) => e.email === friend.friendEmail);
+});
 async function buildActivityEntriesForUser(userId, email) {
-    const userRef = doc(db, 'users', userId)
-    const userDoc = await getDoc(userRef)
-    if (!userDoc.exists()) return []
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) return [];
 
-    const userData = userDoc.data()
-    const activityEntries = []
-    const locations = ['computerScienceBuildingDiscovered', 'sultDiscovered', 'anBhiaLannDiscovered', 'engineeringBuildingDiscovered']
-    for (const location of locations) {
-        if (userData[location + 'At']) {
-            let locationFriendlyName = location
-            if (location === 'computerScienceBuildingDiscovered') {
-                locationFriendlyName = 'Computer Science Building'
-            } else if (location === 'sultDiscovered') {
-                locationFriendlyName = 'Sult'
-            } else if (location === 'anBhiaLannDiscovered') {
-                locationFriendlyName = 'An Bhia Lann'
-            } else if (location === 'engineeringBuildingDiscovered') {
-                locationFriendlyName = 'Engineering Building'
-            }
-            activityEntries.push({
-                email,
-                location: locationFriendlyName,
-                time: userData[location + 'At'].toDate()
-            })
-        }
+    const userData = userDoc.data();
+    const activityEntries = [];
+
+    // iterate over all discovery fields from campusLocations
+    for (const [discoveryField, meta] of Object.entries(discoveryMetaByField)) {
+        const ts = userData[discoveryField + "At"];
+        if (!ts) continue;
+
+        activityEntries.push({
+            email,
+            location: meta.displayName,
+            time: ts.toDate(),
+        });
     }
-    return activityEntries
+
+    return activityEntries;
 }
 
 onMounted(async () => {
-    await friendsStore.fetchFriends()
+    await friendsStore.fetchFriends();
 
-    const activityEntries = []
+    const activityEntries = [];
 
+    // current user
+    activityEntries.push(...(await buildActivityEntriesForUser(auth.user.uid, auth.user.email)));
 
-    activityEntries.push(...await buildActivityEntriesForUser(auth.user.uid, auth.user.email))
-
+    // friends
     for (const friend of friendsStore.friendsList) {
-        const friendEntries = await buildActivityEntriesForUser(friend.friendId, friend.friendEmail)
-        activityEntries.push(...friendEntries)
+        const friendEntries = await buildActivityEntriesForUser(friend.friendId, friend.friendEmail);
+        activityEntries.push(...friendEntries);
     }
-    recentDiscoveries.value = activityEntries.sort((a, b) => b.time - a.time)
 
-
-})
+    recentDiscoveries.value = activityEntries.sort((a, b) => b.time - a.time);
+});
 </script>
 
 <template>
@@ -92,14 +86,13 @@ onMounted(async () => {
         </option>
     </select>
     <div class="leaderboard-table">
-
         <ul>
             <li v-for="entry in filteredDiscoveries" :key="entry.email + entry.location + entry.time">
-                <b>{{ entry.email }}</b> discovered <b>{{ entry.location }}</b> at {{ entry.time.toLocaleString() }}
+                <b>{{ entry.email }}</b> discovered <b>{{ entry.location }}</b> at
+                {{ entry.time.toLocaleString() }}
             </li>
         </ul>
     </div>
-
 </template>
 
 <style scoped>
