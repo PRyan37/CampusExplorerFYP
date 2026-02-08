@@ -29,6 +29,5 @@ coverage
 *.sw?
 
 *.env
-secrets
 
 *.tsbuildinfo

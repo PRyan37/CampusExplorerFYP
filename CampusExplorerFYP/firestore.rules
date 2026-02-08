@@ -58,5 +58,12 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if false;
     }
+    // Allow each user to read their own notifications
+    match /notifications/{userId}/inbox/{notifId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // write is only done by Cloud Functions with admin SDK,
+      // so usually we don't allow client writes:
+      allow write: if false;
+    }
   }
 }

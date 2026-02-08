@@ -89,10 +89,12 @@ export const useAuthStore = defineStore("auth", {
     },
 
     async logout() {
+      const notificationsStore = useNotificationsStore();
       console.log("Logging out user:", this.user?.email);
       await signOut(auth);
       this.user = null;
       this.isAuthenticated = false;
+      notificationsStore.stop();
     },
   },
 });
