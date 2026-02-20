@@ -30,11 +30,15 @@ import engineeringImg from "./assets/EngineeringIcon.png";
 import questionMarkImg from "./assets/QuestionMarkIcon.png";
 import bookImg from "./assets/BookIcon.png";
 import gymImg from "./assets/GymIcon.png";
+import sportsImg from "./assets/SportsIcon.png";
+import socialImg from "./assets/SocialIcon.png";
+import healthImg from "./assets/HealthIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
-import { campusLocations } from "./config/campusLocations";
+import { campusIcons } from "./config/campusIcons";
+import { campusAreas } from "./config/campusAreas";
 
 const auth = useAuthStore();
 const toast = useToastStore();
@@ -70,6 +74,9 @@ const discoveredIcons = {
   engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
   baileyAllen: new defaultIcon({ iconUrl: bookImg }),
   kingfisher: new defaultIcon({ iconUrl: gymImg }),
+  gaaPitches: new defaultIcon({ iconUrl: sportsImg }),
+  theHub: new defaultIcon({ iconUrl: socialImg }),
+  healthCentre: new defaultIcon({ iconUrl: healthImg }),
 };
 
 const discoveryFlags = {
@@ -79,6 +86,11 @@ const discoveryFlags = {
   sultDiscovered: false,
   baileyAllenDiscovered: false,
   kingfisherDiscovered: false,
+  gaaPitchesDiscovered: false,
+  danganDiscovered: false,
+  southBuildingsDiscovered: false,
+  theHubDiscovered: false,
+  healthCentreDiscovered: false,
 };
 
 let watchId = null;
@@ -131,22 +143,25 @@ onMounted(async () => {
   await setUpMap();
 });
 const markersById = {};
+const areaShapesById = {};
 //add markers
 function addMarker(location, icon = unknownIcon) {
-  console.log("[LeafletMap] Adding marker:", location.name, location.coords);
   const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.name);
 
   markersById[location.id] = marker;
+
+  // hide markers in undiscovered areas
+  if (location.areaId && !discoveryFlags[location.areaId + "Discovered"]) {
+    marker.setOpacity(0); // invisible but present
+  }
+
   return marker;
 }
 
 //setup map and markers
 async function initMapInstance() {
   await nextTick();
-
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 0);
+  if (map) return;
 
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
@@ -155,10 +170,25 @@ async function initMapInstance() {
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
 
-  campusLocations.forEach((location) => addMarker(location));
+  // add all areas and icons
+  campusAreas.forEach((area) => {
+    const poly = L.polygon(area.polygon, {
+      color: area.color ?? "#1e90ff",
+      fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+      fillOpacity: area.fillOpacity ?? 0.15,
+      weight: 2,
+    }).addTo(map);
+    areaShapesById[area.id] = poly;
+  });
+
+  campusIcons.forEach((location) => addMarker(location));
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 0);
 }
 function setMarkerIcon(id, icon) {
-  const marker = markersById[id]; // or markersById.get(id)
+  const marker = markersById[id];
   if (!marker) {
     console.warn(`[LeafletMap] Marker not found for id: ${id}`);
     return;
@@ -177,11 +207,38 @@ async function setUpMap() {
       if (snap.exists()) {
         const data = snap.data();
 
-        campusLocations.forEach((loc) => {
+        // sync discovery state from Firestore to map
+        campusAreas.forEach((area) => {
+          const field = area.discoveryField;
+          const flag = !!data[field];
+          discoveryFlags[field] = flag;
+
+          if (flag) {
+            const shape = areaShapesById[area.id];
+            if (shape) {
+              shape.setStyle({
+                color: area.discoveredColor ?? area.color ?? "#1e90ff",
+                fillOpacity: area.discoveredFillOpacity ?? 0,
+              });
+            }
+          }
+        });
+
+        campusIcons.forEach((loc) => {
           const flag = !!data[loc.discoveryField];
           discoveryFlags[loc.discoveryField] = flag;
+          const marker = markersById[loc.id];
+          if (!marker) return;
+
           if (flag) {
             setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+            marker.setOpacity(1);
+          } else if (loc.areaId) {
+            const areaField = loc.areaId + "Discovered";
+            const areaDiscovered = !!data[areaField];
+            marker.setOpacity(areaDiscovered ? 1 : 0);
+          } else {
+            marker.setOpacity(1);
           }
         });
       }
@@ -203,25 +260,58 @@ async function setUpMap() {
   }
 }
 async function undiscoverAll() {
-  campusLocations.forEach((loc) => {
+  // 1) reset all location flags and icons
+  campusIcons.forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
     setMarkerIcon(loc.id, unknownIcon);
+
+    const marker = markersById[loc.id];
+    if (!marker) return;
+
+    // icons inside an area should go back to hidden
+    if (loc.areaId) {
+      marker.setOpacity(0);
+    } else {
+      // standalone icons stay visible but undiscovered
+      marker.setOpacity(1);
+    }
   });
 
+  campusAreas.forEach((area) => {
+    discoveryFlags[area.discoveryField] = false;
+
+    // recreate area polygon if missing
+    if (!areaShapesById[area.id] && map) {
+      const poly = L.polygon(area.polygon, {
+        color: area.color ?? "#1e90ff",
+        fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.fillOpacity ?? 0.15,
+        weight: 2,
+      }).addTo(map);
+      areaShapesById[area.id] = poly;
+    }
+  });
   if (auth.user) {
     try {
       const userRef = doc(db, "users", auth.user.uid);
       const reset = {};
-      campusLocations.forEach((loc) => {
+      //set all location and area discovery fields to false and remove timestamps
+      campusIcons.forEach((loc) => {
         reset[loc.discoveryField] = false;
+        reset[loc.discoveryField + "At"] = null;
       });
+
+      campusAreas.forEach((area) => {
+        reset[area.discoveryField] = false;
+        reset[area.discoveryField + "At"] = null;
+      });
+
       await updateDoc(userRef, reset);
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
     }
   }
 }
-
 function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   if (marker) {
     map.removeLayer(marker);
@@ -238,7 +328,6 @@ function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   }
 }
 async function success(position) {
-  console.log("[LeafletMap] success", position);
   if (!map) return;
 
   const latitude = position.coords.latitude;
@@ -247,21 +336,60 @@ async function success(position) {
   updateUserLocationMarker(latitude, longitude, accuracy);
 
   const userLatLng = L.latLng(latitude, longitude);
-  const discoverRadius = 50; // meters
 
-  for (const loc of campusLocations) {
+  // 1) AREA DISCOVERY
+  for (const area of campusAreas) {
+    const field = area.discoveryField;
+    if (discoveryFlags[field]) continue;
+
+    const shape = areaShapesById[area.id];
+    if (!shape) continue;
+
+    //is user inside area
+    if (shape.getBounds().contains(userLatLng)) {
+      // mark area discovered
+      discoveryFlags[field] = true;
+
+      shape.setStyle({
+        color: area.discoveredColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.discoveredFillOpacity ?? 0,
+      });
+
+      // reveal any markers that belong to this area
+      campusIcons.forEach((loc) => {
+        if (loc.areaId === area.id) {
+          const marker = markersById[loc.id];
+          if (marker && !discoveryFlags[loc.discoveryField]) {
+            marker.setOpacity(1); // now visible but still "undiscovered" icon
+          }
+        }
+      });
+
+      await setDiscoveredOnUser(field);
+      onDiscoveryUnlocked(area.displayName);
+    }
+  }
+
+  // 2) Individual locations
+  for (const loc of campusIcons) {
     const marker = markersById[loc.id];
-    if (
-      !marker ||
-      discoveryFlags[loc.discoveryField] ||
-      userLatLng.distanceTo(marker.getLatLng()) > discoverRadius
-    ) {
-      continue;
+    if (!marker) continue;
+
+    // if this location is inside an area, only allow discovery after area is discovered
+    if (loc.areaId) {
+      const areaField = loc.areaId + "Discovered";
+      if (!discoveryFlags[areaField]) continue;
     }
 
-    // mark as discovered
+    if (discoveryFlags[loc.discoveryField]) continue;
+    const locRadius = loc.radius ?? 50;
+    if (userLatLng.distanceTo(marker.getLatLng()) > locRadius) continue;
+
+    // discover this location
     discoveryFlags[loc.discoveryField] = true;
     setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+    marker.setOpacity(1);
+
     await setDiscoveredOnUser(loc.discoveryField);
     onDiscoveryUnlocked(loc.displayName);
   }

@@ -1,4 +1,4 @@
-export const campusLocations = [
+export const campusIcons = [
   {
     id: "CSBuilding",
     name: "Computer Science Building", // marker popup name
@@ -6,6 +6,7 @@ export const campusLocations = [
     discoveryField: "computerScienceBuildingDiscovered", // Firestore + local flag
     displayName: "Computer Science Building", // toast text
     iconKey: "computerScienceBuilding", // key in discoveredIcons
+    radius: 50,
   },
   {
     id: "anBhiaLann",
@@ -14,6 +15,7 @@ export const campusLocations = [
     discoveryField: "anBhiaLannDiscovered",
     displayName: "An Bhia Lann",
     iconKey: "anBhiaLann",
+    radius: 50,
   },
   {
     id: "engBuilding",
@@ -22,6 +24,7 @@ export const campusLocations = [
     discoveryField: "engineeringBuildingDiscovered",
     displayName: "Engineering Building",
     iconKey: "engineeringBuilding",
+    radius: 50,
   },
   {
     id: "sult",
@@ -30,6 +33,8 @@ export const campusLocations = [
     discoveryField: "sultDiscovered",
     displayName: "Sult",
     iconKey: "sult",
+    radius: 50,
+    areaId: "southBuildings", // for discovery shape
   },
   {
     id: "baileyAllen",
@@ -38,6 +43,28 @@ export const campusLocations = [
     discoveryField: "baileyAllenDiscovered",
     displayName: "Bailey Allen Hall",
     iconKey: "baileyAllen",
+    radius: 50,
+    areaId: "southBuildings",
+  },
+  {
+    id: "theHub",
+    name: "The Hub",
+    coords: [53.27798297033365, -9.057777161994082],
+    discoveryField: "theHubDiscovered",
+    displayName: "The Hub",
+    iconKey: "theHub",
+    radius: 50,
+    areaId: "southBuildings",
+  },
+  {
+    id: "HealthCentre",
+    name: "Health Centre",
+    coords: [53.278246037372135, -9.058058366597026],
+    discoveryField: "healthCentreDiscovered",
+    displayName: "Health Centre",
+    iconKey: "healthCentre",
+    radius: 50,
+    areaId: "southBuildings",
   },
   {
     id: "kingfisher",
@@ -46,5 +73,16 @@ export const campusLocations = [
     discoveryField: "kingfisherDiscovered",
     displayName: "Kingfisher Gym",
     iconKey: "kingfisher",
+    radius: 50,
+  },
+  {
+    id: "gaaPitches",
+    name: "GAA Pitches",
+    coords: [53.2937956056508, -9.073119163513185],
+    discoveryField: "gaaPitchesDiscovered",
+    displayName: "GAA Pitches",
+    iconKey: "gaaPitches",
+    radius: 50,
+    areaId: "dangan", // for discovery shape
   },
 ];

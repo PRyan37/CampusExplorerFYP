@@ -5,7 +5,8 @@ import { onMounted, computed } from "vue";
 import { useFriendsStore } from "@/stores/friends";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase/Firebase";
-import { campusLocations } from "./config/campusLocations";
+import { campusIcons } from "./config/campusIcons";
+import { campusAreas } from "./config/campusAreas";
 
 const friendsStore = useFriendsStore();
 
@@ -13,11 +14,17 @@ const auth = useAuthStore();
 
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
-
-const discoveryMetaByField = campusLocations.reduce((acc, loc) => {
-    acc[loc.discoveryField] = {
+const discoveryMetaByField = [
+    ...campusIcons.map((loc) => ({
+        field: loc.discoveryField,
         displayName: loc.displayName,
-    };
+    })),
+    ...campusAreas.map((area) => ({
+        field: area.discoveryField,
+        displayName: area.displayName,
+    })),
+].reduce((acc, item) => {
+    acc[item.field] = { displayName: item.displayName };
     return acc;
 }, {});
 
@@ -41,7 +48,7 @@ async function buildActivityEntriesForUser(userId, email) {
     const userData = userDoc.data();
     const activityEntries = [];
 
-    // iterate over all discovery fields from campusLocations
+    // iterate over all discovery fields from campusIcons and campusAreas
     for (const [discoveryField, meta] of Object.entries(discoveryMetaByField)) {
         const ts = userData[discoveryField + "At"];
         if (!ts) continue;
