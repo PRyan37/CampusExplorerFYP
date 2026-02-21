@@ -33,6 +33,10 @@ import gymImg from "./assets/GymIcon.png";
 import sportsImg from "./assets/SportsIcon.png";
 import socialImg from "./assets/SocialIcon.png";
 import healthImg from "./assets/HealthIcon.png";
+import dramaImg from "./assets/DramaIcon.png";
+import bankImg from "./assets/BankIcon.png";
+import shopImg from "./assets/ShopIcon.png";
+import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -77,6 +81,18 @@ const discoveredIcons = {
   gaaPitches: new defaultIcon({ iconUrl: sportsImg }),
   theHub: new defaultIcon({ iconUrl: socialImg }),
   healthCentre: new defaultIcon({ iconUrl: healthImg }),
+  humanBiologyBuilding: new defaultIcon({ iconUrl: bookImg }),
+  arasUiChathail: new defaultIcon({ iconUrl: bookImg }),
+  mailServicesCenter: new defaultIcon({ iconUrl: bookImg }),
+  dramaCenter: new defaultIcon({ iconUrl: dramaImg }),
+  orbsenBuilding: new defaultIcon({ iconUrl: bookImg }),
+  boi: new defaultIcon({ iconUrl: bankImg }),
+  smokeys: new defaultIcon({ iconUrl: foodImg }),
+  studentUnionShop: new defaultIcon({ iconUrl: shopImg }),
+  jamesHardimanLibrary: new defaultIcon({ iconUrl: bookImg }),
+  artsMillenniumBuilding: new defaultIcon({ iconUrl: bookImg }),
+  corribVillage: new defaultIcon({ iconUrl: accomImg }),
+  dunlinVillage: new defaultIcon({ iconUrl: accomImg }),
 };
 
 const discoveryFlags = {
@@ -91,6 +107,22 @@ const discoveryFlags = {
   southBuildingsDiscovered: false,
   theHubDiscovered: false,
   healthCentreDiscovered: false,
+  humanBiologyBuildingDiscovered: false,
+  arasUiChathailDiscovered: false,
+  mailServicesCenterDiscovered: false,
+  dramaCenterDiscovered: false,
+  orbsenBuildingDiscovered: false,
+  boiDiscovered: false,
+  smokeysDiscovered: false,
+  concourseDiscovered: false,
+  centralCampusDiscovered: false,
+  studentUnionShopDiscovered: false,
+  jamesHardimanLibraryDiscovered: false,
+  artsMillenniumBuildingDiscovered: false,
+  northCampusDiscovered: false,
+  studentAccomDiscovered: false,
+  corribVillageDiscovered: false,
+  dunlinVillageDiscovered: false,
 };
 
 let watchId = null;
@@ -280,8 +312,9 @@ async function undiscoverAll() {
   campusAreas.forEach((area) => {
     discoveryFlags[area.discoveryField] = false;
 
+    let shape = areaShapesById[area.id];
     // recreate area polygon if missing
-    if (!areaShapesById[area.id] && map) {
+    if (!shape && map) {
       const poly = L.polygon(area.polygon, {
         color: area.color ?? "#1e90ff",
         fillColor: area.fillColor ?? area.color ?? "#1e90ff",
@@ -289,6 +322,13 @@ async function undiscoverAll() {
         weight: 2,
       }).addTo(map);
       areaShapesById[area.id] = poly;
+    }
+    if (shape) {
+      shape.setStyle({
+        color: area.color ?? "#1e90ff",
+        fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.fillOpacity ?? 0.15,
+      });
     }
   });
   if (auth.user) {
