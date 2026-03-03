@@ -28,10 +28,21 @@ import computerImg from "./assets/ComputerIcon.png";
 import foodImg from "./assets/FoodIcon.png";
 import engineeringImg from "./assets/EngineeringIcon.png";
 import questionMarkImg from "./assets/QuestionMarkIcon.png";
+import bookImg from "./assets/BookIcon.png";
+import gymImg from "./assets/GymIcon.png";
+import sportsImg from "./assets/SportsIcon.png";
+import socialImg from "./assets/SocialIcon.png";
+import healthImg from "./assets/HealthIcon.png";
+import dramaImg from "./assets/DramaIcon.png";
+import bankImg from "./assets/BankIcon.png";
+import shopImg from "./assets/ShopIcon.png";
+import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
+import { campusIcons } from "./config/campusIcons";
+import { campusAreas } from "./config/campusAreas";
 
 const auth = useAuthStore();
 const toast = useToastStore();
@@ -65,13 +76,55 @@ const discoveredIcons = {
   computerScienceBuilding: new defaultIcon({ iconUrl: computerImg }),
   anBhiaLann: new defaultIcon({ iconUrl: foodImg }),
   engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
+  baileyAllen: new defaultIcon({ iconUrl: bookImg }),
+  kingfisher: new defaultIcon({ iconUrl: gymImg }),
+  gaaPitches: new defaultIcon({ iconUrl: sportsImg }),
+  theHub: new defaultIcon({ iconUrl: socialImg }),
+  healthCentre: new defaultIcon({ iconUrl: healthImg }),
+  humanBiologyBuilding: new defaultIcon({ iconUrl: bookImg }),
+  arasUiChathail: new defaultIcon({ iconUrl: bookImg }),
+  mailServicesCenter: new defaultIcon({ iconUrl: bookImg }),
+  dramaCenter: new defaultIcon({ iconUrl: dramaImg }),
+  orbsenBuilding: new defaultIcon({ iconUrl: bookImg }),
+  boi: new defaultIcon({ iconUrl: bankImg }),
+  smokeys: new defaultIcon({ iconUrl: foodImg }),
+  studentUnionShop: new defaultIcon({ iconUrl: shopImg }),
+  jamesHardimanLibrary: new defaultIcon({ iconUrl: bookImg }),
+  artsMillenniumBuilding: new defaultIcon({ iconUrl: bookImg }),
+  corribVillage: new defaultIcon({ iconUrl: accomImg }),
+  dunlinVillage: new defaultIcon({ iconUrl: accomImg }),
 };
 
-let computerScienceBuildingMarker, anBhiaLannMarker, engineeringBuildingMarker, sultMarker;
-let computerScienceBuildingDiscovered = false;
-let anBhiaLannDiscovered = false;
-let engineeringBuildingDiscovered = false;
-let sultDiscovered = false;
+const discoveryFlags = {
+  computerScienceBuildingDiscovered: false,
+  anBhiaLannDiscovered: false,
+  engineeringBuildingDiscovered: false,
+  sultDiscovered: false,
+  baileyAllenDiscovered: false,
+  kingfisherDiscovered: false,
+  gaaPitchesDiscovered: false,
+  danganDiscovered: false,
+  southBuildingsDiscovered: false,
+  theHubDiscovered: false,
+  healthCentreDiscovered: false,
+  humanBiologyBuildingDiscovered: false,
+  arasUiChathailDiscovered: false,
+  mailServicesCenterDiscovered: false,
+  dramaCenterDiscovered: false,
+  orbsenBuildingDiscovered: false,
+  boiDiscovered: false,
+  smokeysDiscovered: false,
+  concourseDiscovered: false,
+  centralCampusDiscovered: false,
+  studentUnionShopDiscovered: false,
+  jamesHardimanLibraryDiscovered: false,
+  artsMillenniumBuildingDiscovered: false,
+  northCampusDiscovered: false,
+  studentAccomDiscovered: false,
+  corribVillageDiscovered: false,
+  dunlinVillageDiscovered: false,
+};
+
 let watchId = null;
 let marker, circle, zoomed;
 
@@ -87,29 +140,6 @@ async function setDiscoveredOnUser(location) {
   }
 }
 
-async function discoverComputerScienceBuilding() {
-  computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-  computerScienceBuildingDiscovered = true;
-  await setDiscoveredOnUser("computerScienceBuildingDiscovered");
-}
-
-async function discoverAnBhiaLann() {
-  anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-  anBhiaLannDiscovered = true;
-  await setDiscoveredOnUser("anBhiaLannDiscovered");
-}
-
-async function discoverEngineeringBuilding() {
-  engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-  engineeringBuildingDiscovered = true;
-  await setDiscoveredOnUser("engineeringBuildingDiscovered");
-}
-
-async function discoverSult() {
-  sultMarker.setIcon(discoveredIcons.sult);
-  sultDiscovered = true;
-  await setDiscoveredOnUser("sultDiscovered");
-}
 function getCurrentLocation() {
   console.log("[LeafletMap] getCurrentLocation clicked");
 
@@ -144,12 +174,27 @@ function getCurrentLocation() {
 onMounted(async () => {
   await setUpMap();
 });
+const markersById = {};
+const areaShapesById = {};
+//add markers
+function addMarker(location, icon = unknownIcon) {
+  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.name);
 
+  markersById[location.id] = marker;
+
+  // hide markers in undiscovered areas
+  if (location.areaId && !discoveryFlags[location.areaId + "Discovered"]) {
+    marker.setOpacity(0); // invisible but present
+  }
+
+  return marker;
+}
+
+//setup map and markers
 async function initMapInstance() {
   await nextTick();
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 0);
+  if (map) return;
+
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -157,46 +202,77 @@ async function initMapInstance() {
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
 
-  computerScienceBuildingMarker = L.marker([53.28027348648772, -9.058721065521242], {
-    icon: unknownIcon,
-  })
-    .addTo(map)
-    .bindPopup("Computer Science Building");
+  // add all areas and icons
+  campusAreas.forEach((area) => {
+    const poly = L.polygon(area.polygon, {
+      color: area.color ?? "#1e90ff",
+      fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+      fillOpacity: area.fillOpacity ?? 0.15,
+      weight: 2,
+    }).addTo(map);
+    areaShapesById[area.id] = poly;
+  });
 
-  anBhiaLannMarker = L.marker([53.27984730218445, -9.060936570167543], { icon: unknownIcon })
-    .addTo(map)
-    .bindPopup("Campus Cafeteria");
+  campusIcons.forEach((location) => addMarker(location));
 
-  engineeringBuildingMarker = L.marker([53.283952206483185, -9.063854813575746], {
-    icon: unknownIcon,
-  })
-    .addTo(map)
-    .bindPopup("Engineering Building");
-
-  sultMarker = L.marker([53.277980540805586, -9.05839115381241], { icon: unknownIcon })
-    .addTo(map)
-    .bindPopup("Come here for a beer!");
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 0);
+}
+function setMarkerIcon(id, icon) {
+  const marker = markersById[id];
+  if (!marker) {
+    console.warn(`[LeafletMap] Marker not found for id: ${id}`);
+    return;
+  }
+  marker.setIcon(icon);
 }
 async function setUpMap() {
   await nextTick();
   if (!mapEl.value) return;
-  initMapInstance();
+  await initMapInstance();
+
   if (auth.user) {
     try {
       const userRef = doc(db, "users", auth.user.uid);
       const snap = await getDoc(userRef);
       if (snap.exists()) {
         const data = snap.data();
-        computerScienceBuildingDiscovered = !!data.computerScienceBuildingDiscovered;
-        anBhiaLannDiscovered = !!data.anBhiaLannDiscovered;
-        engineeringBuildingDiscovered = !!data.engineeringBuildingDiscovered;
-        sultDiscovered = !!data.sultDiscovered;
-        if (computerScienceBuildingDiscovered)
-          computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-        if (anBhiaLannDiscovered) anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-        if (engineeringBuildingDiscovered)
-          engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-        if (sultDiscovered) sultMarker.setIcon(discoveredIcons.sult);
+
+        // sync discovery state from Firestore to map
+        campusAreas.forEach((area) => {
+          const field = area.discoveryField;
+          const flag = !!data[field];
+          discoveryFlags[field] = flag;
+
+          if (flag) {
+            const shape = areaShapesById[area.id];
+            if (shape) {
+              shape.setStyle({
+                color: area.discoveredColor ?? area.color ?? "#1e90ff",
+                fillOpacity: area.discoveredFillOpacity ?? 0,
+              });
+            }
+          }
+        });
+
+        campusIcons.forEach((loc) => {
+          const flag = !!data[loc.discoveryField];
+          discoveryFlags[loc.discoveryField] = flag;
+          const marker = markersById[loc.id];
+          if (!marker) return;
+
+          if (flag) {
+            setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+            marker.setOpacity(1);
+          } else if (loc.areaId) {
+            const areaField = loc.areaId + "Discovered";
+            const areaDiscovered = !!data[areaField];
+            marker.setOpacity(areaDiscovered ? 1 : 0);
+          } else {
+            marker.setOpacity(1);
+          }
+        });
       }
     } catch (e) {
       console.error("[LeafletMap] Failed to load discovery state", e);
@@ -204,7 +280,6 @@ async function setUpMap() {
   }
 
   clickHandler = (e) => {
-    // e.latlng is a LatLng object {lat, lng}
     console.log("Map click:", e.latlng);
     success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
   };
@@ -216,33 +291,67 @@ async function setUpMap() {
     alert("Geolocation is not supported by this browser.");
   }
 }
-
 async function undiscoverAll() {
-  computerScienceBuildingDiscovered = false;
-  anBhiaLannDiscovered = false;
-  engineeringBuildingDiscovered = false;
-  sultDiscovered = false;
+  // 1) reset all location flags and icons
+  campusIcons.forEach((loc) => {
+    discoveryFlags[loc.discoveryField] = false;
+    setMarkerIcon(loc.id, unknownIcon);
 
-  computerScienceBuildingMarker.setIcon(unknownIcon);
-  anBhiaLannMarker.setIcon(unknownIcon);
-  engineeringBuildingMarker.setIcon(unknownIcon);
-  sultMarker.setIcon(unknownIcon);
+    const marker = markersById[loc.id];
+    if (!marker) return;
 
+    // icons inside an area should go back to hidden
+    if (loc.areaId) {
+      marker.setOpacity(0);
+    } else {
+      // standalone icons stay visible but undiscovered
+      marker.setOpacity(1);
+    }
+  });
+
+  campusAreas.forEach((area) => {
+    discoveryFlags[area.discoveryField] = false;
+
+    let shape = areaShapesById[area.id];
+    // recreate area polygon if missing
+    if (!shape && map) {
+      const poly = L.polygon(area.polygon, {
+        color: area.color ?? "#1e90ff",
+        fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.fillOpacity ?? 0.15,
+        weight: 2,
+      }).addTo(map);
+      areaShapesById[area.id] = poly;
+    }
+    if (shape) {
+      shape.setStyle({
+        color: area.color ?? "#1e90ff",
+        fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.fillOpacity ?? 0.15,
+      });
+    }
+  });
   if (auth.user) {
     try {
       const userRef = doc(db, "users", auth.user.uid);
-      await updateDoc(userRef, {
-        computerScienceBuildingDiscovered: false,
-        anBhiaLannDiscovered: false,
-        engineeringBuildingDiscovered: false,
-        sultDiscovered: false,
+      const reset = {};
+      //set all location and area discovery fields to false and remove timestamps
+      campusIcons.forEach((loc) => {
+        reset[loc.discoveryField] = false;
+        reset[loc.discoveryField + "At"] = null;
       });
+
+      campusAreas.forEach((area) => {
+        reset[area.discoveryField] = false;
+        reset[area.discoveryField + "At"] = null;
+      });
+
+      await updateDoc(userRef, reset);
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
     }
   }
 }
-
 function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   if (marker) {
     map.removeLayer(marker);
@@ -258,53 +367,71 @@ function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
     zoomed = map.fitBounds(circle.getBounds());
   }
 }
-
 async function success(position) {
-  console.log("[LeafletMap] success", position);
   if (!map) return;
+
   const latitude = position.coords.latitude;
   const longitude = position.coords.longitude;
   const accuracy = 20;
   updateUserLocationMarker(latitude, longitude, accuracy);
-  // 🔹 check discovery radius (~50m) around each POI
+
   const userLatLng = L.latLng(latitude, longitude);
-  const discoverRadius = 50; // meters
 
-  if (
-    !computerScienceBuildingDiscovered &&
-    userLatLng.distanceTo(computerScienceBuildingMarker.getLatLng()) <= discoverRadius
-  ) {
-    computerScienceBuildingDiscovered = true;
-    computerScienceBuildingMarker.setIcon(discoveredIcons.computerScienceBuilding);
-    await setDiscoveredOnUser("computerScienceBuildingDiscovered");
-    onDiscoveryUnlocked("Computer Science Building");
+  // 1) AREA DISCOVERY
+  for (const area of campusAreas) {
+    const field = area.discoveryField;
+    if (discoveryFlags[field]) continue;
+
+    const shape = areaShapesById[area.id];
+    if (!shape) continue;
+
+    //is user inside area
+    if (shape.getBounds().contains(userLatLng)) {
+      // mark area discovered
+      discoveryFlags[field] = true;
+
+      shape.setStyle({
+        color: area.discoveredColor ?? area.color ?? "#1e90ff",
+        fillOpacity: area.discoveredFillOpacity ?? 0,
+      });
+
+      // reveal any markers that belong to this area
+      campusIcons.forEach((loc) => {
+        if (loc.areaId === area.id) {
+          const marker = markersById[loc.id];
+          if (marker && !discoveryFlags[loc.discoveryField]) {
+            marker.setOpacity(1); // now visible but still "undiscovered" icon
+          }
+        }
+      });
+
+      await setDiscoveredOnUser(field);
+      onDiscoveryUnlocked(area.displayName);
+    }
   }
 
-  if (
-    !anBhiaLannDiscovered &&
-    userLatLng.distanceTo(anBhiaLannMarker.getLatLng()) <= discoverRadius
-  ) {
-    anBhiaLannDiscovered = true;
-    anBhiaLannMarker.setIcon(discoveredIcons.anBhiaLann);
-    await setDiscoveredOnUser("anBhiaLannDiscovered");
-    onDiscoveryUnlocked("An Bhia Lann");
-  }
+  // 2) Individual locations
+  for (const loc of campusIcons) {
+    const marker = markersById[loc.id];
+    if (!marker) continue;
 
-  if (
-    !engineeringBuildingDiscovered &&
-    userLatLng.distanceTo(engineeringBuildingMarker.getLatLng()) <= discoverRadius
-  ) {
-    engineeringBuildingDiscovered = true;
-    engineeringBuildingMarker.setIcon(discoveredIcons.engineeringBuilding);
-    await setDiscoveredOnUser("engineeringBuildingDiscovered");
-    onDiscoveryUnlocked("Engineering Building");
-  }
+    // if this location is inside an area, only allow discovery after area is discovered
+    if (loc.areaId) {
+      const areaField = loc.areaId + "Discovered";
+      if (!discoveryFlags[areaField]) continue;
+    }
 
-  if (!sultDiscovered && userLatLng.distanceTo(sultMarker.getLatLng()) <= discoverRadius) {
-    sultDiscovered = true;
-    sultMarker.setIcon(discoveredIcons.sult);
-    await setDiscoveredOnUser("sultDiscovered");
-    onDiscoveryUnlocked("Sult");
+    if (discoveryFlags[loc.discoveryField]) continue;
+    const locRadius = loc.radius ?? 50;
+    if (userLatLng.distanceTo(marker.getLatLng()) > locRadius) continue;
+
+    // discover this location
+    discoveryFlags[loc.discoveryField] = true;
+    setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+    marker.setOpacity(1);
+
+    await setDiscoveredOnUser(loc.discoveryField);
+    onDiscoveryUnlocked(loc.displayName);
   }
 }
 function error(err) {
