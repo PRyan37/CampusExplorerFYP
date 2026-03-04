@@ -23,6 +23,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import beerImg from "./assets/BeerIcon.png";
 import computerImg from "./assets/ComputerIcon.png";
 import foodImg from "./assets/FoodIcon.png";
@@ -46,6 +49,13 @@ import { campusAreas } from "./config/campusAreas";
 
 const auth = useAuthStore();
 const toast = useToastStore();
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
 
 function onDiscoveryUnlocked(name) {
   confetti({

@@ -46,12 +46,20 @@ router.beforeEach(async (to) => {
     });
   }
 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { path: "/login", query: { redirect: to.fullPath } };
+  if (to.path === "/") {
+    if (auth.isAuthenticated) return { path: "/home" };
+    return true;
   }
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { path: "/", query: { redirect: to.fullPath } };
+  }
+
   if (to.path === "/login" && auth.isAuthenticated) {
     return { path: "/home" };
   }
+
+  return true;
 });
 
 export default router;

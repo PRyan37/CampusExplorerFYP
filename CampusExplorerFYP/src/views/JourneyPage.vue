@@ -6,8 +6,11 @@ import { campusAreas } from "@/config/campusAreas";
 import { useAuthStore } from "@/stores/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/Firebase";
+import { useProgressStore } from "@/stores/progress";
 
+const progressStore = useProgressStore();
 const auth = useAuthStore();
+const myScore = ref(0);
 
 const totalLocations = campusIcons.length + campusAreas.length;
 const discoveredLocations = ref(0);
@@ -57,6 +60,8 @@ const progressPercent = computed(() => {
     return Math.round((discoveredLocations.value / totalLocations) * 100);
 });
 onMounted(async () => {
+    myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
+
     if (auth.user) {
         const userRef = doc(db, "users", auth.user.uid);
         const snap = await getDoc(userRef);
@@ -106,6 +111,7 @@ onMounted(async () => {
         </div>
 
         <p v-if="progressPercent === 100" class="complete-msg">You've discovered everything!</p>
+        <p>You have a score of {{ myScore }}</p>
     </div>
 
     <div class="locations-section">
