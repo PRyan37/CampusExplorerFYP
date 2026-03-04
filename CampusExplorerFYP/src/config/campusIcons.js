@@ -8,6 +8,8 @@ export const campusIcons = [
     iconKey: "computerScienceBuilding", // key in discoveredIcons
     radius: 50,
     areaId: "concourse",
+    description:
+      "The Computer Science Building is home to the School of Computer Science and Information Technology. It houses lecture halls, computer labs, and faculty offices. It's a hub of innovation and learning for students pursuing degrees in computer science and related fields.",
   },
   {
     id: "orbsenBuilding",
@@ -18,6 +20,7 @@ export const campusIcons = [
     iconKey: "orbsenBuilding",
     radius: 50,
     areaId: "concourse",
+    description: "Description.",
   },
   {
     id: "boi",
@@ -28,6 +31,7 @@ export const campusIcons = [
     iconKey: "boi",
     radius: 50,
     areaId: "concourse",
+    description: "Description.",
   },
   {
     id: "smokeys",
@@ -38,6 +42,7 @@ export const campusIcons = [
     iconKey: "smokeys",
     radius: 50,
     areaId: "concourse",
+    description: "Description.",
   },
   {
     id: "anBhiaLann",
@@ -48,6 +53,7 @@ export const campusIcons = [
     iconKey: "anBhiaLann",
     radius: 50,
     areaId: "centralCampus",
+    description: "Description.",
   },
   {
     id: "studentUnionShop",
@@ -58,6 +64,7 @@ export const campusIcons = [
     iconKey: "studentUnionShop",
     radius: 50,
     areaId: "centralCampus",
+    description: "Description.",
   },
   {
     id: "jamesHardimanLibrary",
@@ -68,6 +75,7 @@ export const campusIcons = [
     iconKey: "jamesHardimanLibrary",
     radius: 50,
     areaId: "centralCampus",
+    description: "Description.",
   },
   {
     id: "artsMilleniumBuilding",
@@ -78,6 +86,7 @@ export const campusIcons = [
     iconKey: "artsMillenniumBuilding",
     radius: 50,
     areaId: "centralCampus",
+    description: "Description.",
   },
   {
     id: "engBuilding",
@@ -88,6 +97,7 @@ export const campusIcons = [
     iconKey: "engineeringBuilding",
     radius: 50,
     areaId: "northCampus",
+    description: "Description.",
   },
   {
     id: "sult",
@@ -97,7 +107,8 @@ export const campusIcons = [
     displayName: "Sult",
     iconKey: "sult",
     radius: 50,
-    areaId: "southBuildings", // for discovery shape
+    areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "baileyAllen",
@@ -108,6 +119,7 @@ export const campusIcons = [
     iconKey: "baileyAllen",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "theHub",
@@ -118,6 +130,7 @@ export const campusIcons = [
     iconKey: "theHub",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "HealthCentre",
@@ -128,6 +141,7 @@ export const campusIcons = [
     iconKey: "healthCentre",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "humanBiologyBuilding",
@@ -138,6 +152,7 @@ export const campusIcons = [
     iconKey: "humanBiologyBuilding",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "ArasUiChathail",
@@ -148,6 +163,7 @@ export const campusIcons = [
     iconKey: "arasUiChathail",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "MailServicesCenter",
@@ -158,6 +174,7 @@ export const campusIcons = [
     iconKey: "mailServicesCenter",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "dramaCenter",
@@ -168,6 +185,7 @@ export const campusIcons = [
     iconKey: "dramaCenter",
     radius: 50,
     areaId: "southBuildings",
+    description: "Description.",
   },
   {
     id: "kingfisher",
@@ -178,6 +196,7 @@ export const campusIcons = [
     iconKey: "kingfisher",
     radius: 50,
     areaId: "northCampus",
+    description: "Description.",
   },
   {
     id: "gaaPitches",
@@ -188,6 +207,7 @@ export const campusIcons = [
     iconKey: "gaaPitches",
     radius: 50,
     areaId: "dangan",
+    description: "Description.",
   },
   {
     id: "corribVillage",
@@ -198,6 +218,7 @@ export const campusIcons = [
     iconKey: "corribVillage",
     radius: 50,
     areaId: "studentAccom",
+    description: "Description.",
   },
   {
     id: "dunlinVillage",
@@ -208,5 +229,6 @@ export const campusIcons = [
     iconKey: "dunlinVillage",
     radius: 50,
     areaId: "studentAccom",
+    description: "Description.",
   },
 ];
