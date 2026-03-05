@@ -48,6 +48,28 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
+exports.createUserProfile = onCall(async (request) => {
+  const { auth } = request;
+
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const uid = auth.uid;
+  const email = (auth.token?.email || "").trim().toLowerCase();
+
+  await db
+    .collection("users")
+    .doc(uid)
+    .set(
+      {
+        email: email || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+  return { ok: true };
+});
+
 exports.sendFriendRequest = onCall(async (request) => {
   const { data, auth } = request;
 

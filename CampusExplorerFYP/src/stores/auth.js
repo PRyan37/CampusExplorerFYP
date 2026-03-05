@@ -1,14 +1,18 @@
 import { defineStore } from "pinia";
-import { auth, db } from "../firebase/Firebase";
+import { auth } from "../firebase/Firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useFriendRequestsStore } from "./friendRequests";
 import { useNotificationsStore } from "./notifications";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/firebase/Firebase";
+
+const functions = getFunctions(app);
+const createUserProfileCall = httpsCallable(functions, "createUserProfile");
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
@@ -53,12 +57,8 @@ export const useAuthStore = defineStore("auth", {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         this.user = cred.user;
         this.isAuthenticated = true;
-
-        await setDoc(doc(db, "users", cred.user.uid), {
-          email: cred.user.email,
-          createdAt: serverTimestamp(),
-        });
-
+        await createUserProfileCall({});
+        console.log("Created user profile for:", email);
         return cred.user;
       } catch (e) {
         this.error = e.message;

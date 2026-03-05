@@ -4,7 +4,11 @@ import { useAuthStore } from "./auth";
 import { collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "@/firebase/Firebase";
+import { useToastStore } from "./toast";
 const functions = getFunctions(app);
+
+const sendFriendRequestCall = httpsCallable(functions, "sendFriendRequest");
+const respondToFriendRequestCall = httpsCallable(functions, "respondToFriendRequest");
 
 export const useFriendRequestsStore = defineStore("friendRequests", {
   state: () => ({
@@ -128,12 +132,13 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       this.loading = true;
       this.error = null;
       const auth = useAuthStore();
+      const toast = useToastStore();
       if (!auth.user) return;
       try {
-        const call = httpsCallable(functions, "sendFriendRequest");
-        await call({ toEmail });
+        await sendFriendRequestCall({ toEmail });
       } catch (e) {
         this.error = e.message || String(e);
+        toast.show(this.error, { type: "error", duration: 5000 });
         throw e;
       } finally {
         this.loading = false;
@@ -146,8 +151,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       const auth = useAuthStore();
       if (!auth.user) return;
       try {
-        const call = httpsCallable(functions, "respondToFriendRequest");
-        await call({ requestId, action: "accept" });
+        await respondToFriendRequestCall({ requestId, action: "accept" });
       } catch (e) {
         this.error = e.message || String(e);
         throw e;
@@ -162,8 +166,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       const auth = useAuthStore();
       if (!auth.user) return;
       try {
-        const call = httpsCallable(functions, "respondToFriendRequest");
-        await call({ requestId, action: "reject" });
+        await respondToFriendRequestCall({ requestId, action: "reject" });
       } catch (e) {
         this.error = e.message || String(e);
         throw e;
