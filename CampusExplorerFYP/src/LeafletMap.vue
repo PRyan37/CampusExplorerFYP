@@ -46,9 +46,13 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
 import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "./firebase/Firebase";
 
 const auth = useAuthStore();
 const toast = useToastStore();
+const functions = getFunctions(app);
+const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -138,13 +142,11 @@ const discoveryFlags = {
 let watchId = null;
 let marker, circle, zoomed;
 
-async function setDiscoveredOnUser(location) {
+async function setDiscoveredOnUser({ discoveryField, displayName }) {
   if (!auth.user) return;
 
   try {
-    const userRef = doc(db, "users", auth.user.uid);
-    const timestampField = `${location}At`;
-    await updateDoc(userRef, { [location]: true, [timestampField]: new Date() });
+    await markDiscoveredCall({ discoveryField, displayName });
   } catch (e) {
     console.error("[LeafletMap] Failed to update discovery flag", location, e);
   }
@@ -415,7 +417,7 @@ async function success(position) {
         }
       });
 
-      await setDiscoveredOnUser(field);
+      await setDiscoveredOnUser({ discoveryField: field, displayName: area.displayName });
       onDiscoveryUnlocked(area.displayName);
     }
   }
@@ -440,7 +442,7 @@ async function success(position) {
     setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
     marker.setOpacity(1);
 
-    await setDiscoveredOnUser(loc.discoveryField);
+    await setDiscoveredOnUser({ discoveryField: loc.discoveryField, displayName: loc.displayName });
     onDiscoveryUnlocked(loc.displayName);
   }
 }

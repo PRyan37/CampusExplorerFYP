@@ -149,11 +149,13 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       this.loading = true;
       this.error = null;
       const auth = useAuthStore();
+      const toast = useToastStore();
       if (!auth.user) return;
       try {
         await respondToFriendRequestCall({ requestId, action: "accept" });
       } catch (e) {
         this.error = e.message || String(e);
+        toast.show(this.error, { type: "error", duration: 5000 });
         throw e;
       } finally {
         this.loading = false;
@@ -164,11 +166,13 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
       this.loading = true;
       this.error = null;
       const auth = useAuthStore();
+      const toast = useToastStore();
       if (!auth.user) return;
       try {
         await respondToFriendRequestCall({ requestId, action: "reject" });
       } catch (e) {
         this.error = e.message || String(e);
+        toast.show(this.error, { type: "error", duration: 5000 });
         throw e;
       } finally {
         this.loading = false;
