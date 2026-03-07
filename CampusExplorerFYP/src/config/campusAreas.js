@@ -18,6 +18,7 @@ export const campusAreas = [
     // style after discovery (keep outline, no fill)
     discoveredColor: "#008b2eff",
     discoveredFillOpacity: 0,
+    description: "Description.",
   },
   {
     id: "southBuildings",
@@ -37,6 +38,7 @@ export const campusAreas = [
 
     discoveredColor: "#da7400ff",
     discoveredFillOpacity: 0,
+    description: "Description.",
   },
   {
     id: "concourse",
@@ -56,6 +58,7 @@ export const campusAreas = [
 
     discoveredColor: "#a00000ff",
     discoveredFillOpacity: 0,
+    description: "Description.",
   },
   {
     id: "centralCampus",
@@ -75,6 +78,7 @@ export const campusAreas = [
 
     discoveredColor: "#0b00a0ff",
     discoveredFillOpacity: 0,
+    description: "Description.",
   },
   {
     id: "northCampus",
@@ -94,6 +98,7 @@ export const campusAreas = [
 
     discoveredColor: "#a7aa00ff",
     discoveredFillOpacity: 0,
+    description: "Description.",
   },
   {
     id: "studentAccom",
@@ -113,5 +118,26 @@ export const campusAreas = [
 
     discoveredColor: "#aa0077ff",
     discoveredFillOpacity: 0,
+    description: "Description.",
+  },
+  {
+    id: "galwayCity",
+    name: "Galway City",
+    polygon: [
+      [53.270855, -9.048202],
+      [53.274859, -9.045303],
+      [53.275845, -9.050102],
+      [53.272841, -9.052001],
+    ],
+    discoveryField: "galwayCityDiscovered",
+    displayName: "Galway City",
+    iconKey: "galwayCity",
+    color: "#ff0000ff",
+    fillColor: "#ff0000ff",
+    fillOpacity: 0.15,
+
+    discoveredColor: "#ff0000ff",
+    discoveredFillOpacity: 0,
+    description: "Description.",
   },
 ];

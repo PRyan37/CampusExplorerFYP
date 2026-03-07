@@ -3,6 +3,7 @@ import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/firebase/Firebase";
 import { useAuthStore } from "./auth";
 import { useToastStore } from "./toast";
+import { useFriendsStore } from "./friends";
 
 let unsub = null;
 
@@ -14,6 +15,7 @@ export const useNotificationsStore = defineStore("notifications", {
   actions: {
     start() {
       const auth = useAuthStore();
+      const friendsStore = useFriendsStore();
       console.log("[notifications] start listener for user:", auth.user?.uid);
       if (!auth.user) return;
 
@@ -51,6 +53,9 @@ export const useNotificationsStore = defineStore("notifications", {
           newest.type === "FRIEND_REQUEST_ACCEPTED"
         ) {
           toastType = "friendRequest";
+        }
+        if (newest.type === "FRIEND_REQUEST_ACCEPTED") {
+          friendsStore.fetchFriends();
         }
 
         toast.show(newest.message, { type: toastType, duration: 5000 });

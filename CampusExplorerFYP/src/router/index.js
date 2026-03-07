@@ -1,41 +1,65 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
 const routes = [
-  { path: '/', name: 'introduction', component: () => import('../views/IntroductionPage.vue') },
-  { path: '/login', name: 'login', component: () => import('../views/SignInPage.vue') },
-  { path: '/home', name: 'home', component: () => import('../views/MainPage.vue'), meta: { requiresAuth: true } },
-  { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/LeaderboardPage.vue'), meta: { requiresAuth: true } }
-]
+  { path: "/", name: "introduction", component: () => import("../views/IntroductionPage.vue") },
+  { path: "/login", name: "login", component: () => import("../views/SignInPage.vue") },
+  {
+    path: "/home",
+    name: "home",
+    component: () => import("../views/MainPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/leaderboard",
+    name: "leaderboard",
+    component: () => import("../views/LeaderboardPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/journey",
+    name: "journey",
+    component: () => import("../views/JourneyPage.vue"),
+    meta: { requiresAuth: true },
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
-})
+  routes,
+});
 
 router.beforeEach(async (to) => {
-   const auth = useAuthStore()
+  const auth = useAuthStore();
   if (!auth.ready) {
     await new Promise((resolve) => {
       const stop = auth.$subscribe(
         (mutation, state) => {
           if (state.ready) {
-            console.log('[router.beforeEach] auth.ready became true')
-            stop()
-            resolve()
+            console.log("[router.beforeEach] auth.ready became true");
+            stop();
+            resolve();
           }
         },
-        { detached: true }
-      )
-    })
+        { detached: true },
+      );
+    });
   }
- 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { path: '/login', query: { redirect: to.fullPath } }
-  }
-  if (to.path === '/login' && auth.isAuthenticated) {
-    return { path: '/home' }
-  }
-})
 
-export default router
+  if (to.path === "/") {
+    if (auth.isAuthenticated) return { path: "/home" };
+    return true;
+  }
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { path: "/", query: { redirect: to.fullPath } };
+  }
+
+  if (to.path === "/login" && auth.isAuthenticated) {
+    return { path: "/home" };
+  }
+
+  return true;
+});
+
+export default router;

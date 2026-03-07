@@ -1,22 +1,19 @@
 <script setup>
 import FriendsModal from "./AddFriendsModal.vue";
 import { ref, computed } from "vue";
-import NotificationsPopUp from "./NotificationsPopUp.vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
-import bellImg from "./assets/bell.png";
+import journeyImg from "./assets/journeyIcon.png";
 import leaderboardImg from "./assets/leaderboard.png";
 import homeImg from "./assets/homeIcon.png";
-import { useFriendRequestsStore } from "./stores/friendRequests";
-const friendRequestsStore = useFriendRequestsStore();
+
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
-const showNotificationsPopUp = ref(false);
 const showFriendsModal = ref(false);
 const isHome = computed(() => route.path === "/home");
 const isLeaderboard = computed(() => route.path === "/leaderboard");
-const isNotifications = computed(() => showNotificationsPopUp.value);
+const isJourney = computed(() => route.path === "/journey");
 const isFriendsModal = computed(() => showFriendsModal.value);
 
 function openFriendsModal() {
@@ -25,17 +22,14 @@ function openFriendsModal() {
 function closeFriendsModal() {
   showFriendsModal.value = false;
 }
-function openNotificationsPopUp() {
-  showNotificationsPopUp.value = true;
-}
-function closeNotificationsPopUp() {
-  showNotificationsPopUp.value = false;
-}
 function goLeaderboard() {
   router.push("/leaderboard");
 }
 function goHome() {
   router.push("/home");
+}
+function goJourney() {
+  router.push("/journey");
 }
 </script>
 
@@ -47,20 +41,17 @@ function goHome() {
         <div @click="goHome" class="buttons" :class="{ active: isHome }">
           <img :src="homeImg" alt="Home" />
         </div>
+        <div @click="goJourney" class="buttons" :class="{ active: isJourney }">
+          <img :src="journeyImg" alt="Journey" />
+        </div>
         <div @click="goLeaderboard" class="buttons" :class="{ active: isLeaderboard }">
           <img :src="leaderboardImg" alt="Leaderboard" />
         </div>
+
         <div @click="openFriendsModal" class="buttons" :class="{ active: isFriendsModal }">
           <b>+</b>
         </div>
-        <!-- <div @click="openNotificationsPopUp" class="buttons" :class="{ active: isNotifications }">
-          <img :src="bellImg" alt="Notifications" />
-          <span v-if="friendRequestsStore.incomingCount" class="badge">
-            {{ friendRequestsStore.incomingCount }}
-          </span>
-        </div> -->
       </div>
-      <NotificationsPopUp v-if="showNotificationsPopUp" @close-notifications-pop-up="closeNotificationsPopUp" />
       <FriendsModal v-if="showFriendsModal" @close-friend-modal="closeFriendsModal" />
     </div>
   </header>

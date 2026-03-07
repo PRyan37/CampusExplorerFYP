@@ -48,6 +48,28 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
+exports.createUserProfile = onCall(async (request) => {
+  const { auth } = request;
+
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const uid = auth.uid;
+  const email = (auth.token?.email || "").trim().toLowerCase();
+
+  await db
+    .collection("users")
+    .doc(uid)
+    .set(
+      {
+        email: email || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+  return { ok: true };
+});
+
 exports.sendFriendRequest = onCall(async (request) => {
   const { data, auth } = request;
 
@@ -261,4 +283,63 @@ exports.respondToFriendRequest = onCall(async (request) => {
     }
     throw new HttpsError("internal", "Failed to respond to friend request.");
   }
+});
+
+exports.markDiscovered = onCall(async (request) => {
+  const { auth, data } = request;
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const userId = auth.uid;
+  const fromEmail = (auth.token?.email || "").trim().toLowerCase();
+
+  const discoveryField = data?.discoveryField; // e.g. "concourseDiscovered" or "sultDiscovered"
+  const displayName = data?.displayName || "a location";
+
+  if (!discoveryField) {
+    throw new HttpsError("invalid-argument", "discoveryField is required.");
+  }
+
+  if (!/Discovered$/.test(discoveryField)) {
+    throw new HttpsError("invalid-argument", "Invalid discoveryField.");
+  }
+
+  const timestampField = `${discoveryField}At`;
+
+  await db
+    .collection("users")
+    .doc(userId)
+    .set(
+      {
+        [discoveryField]: true,
+        [timestampField]: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+  const friendsSnap = await db.collection("friends").where("userId", "==", userId).get();
+  const friendIds = friendsSnap.docs.map((d) => d.data()?.friendId).filter(Boolean);
+
+  if (friendIds.length) {
+    const batch = db.batch();
+    const createdAt = admin.firestore.FieldValue.serverTimestamp();
+
+    friendIds.forEach((friendId) => {
+      const notifRef = db.collection(`notifications/${friendId}/inbox`).doc();
+      batch.set(notifRef, {
+        type: "FRIEND_DISCOVERY",
+        ownerId: friendId,
+        fromUserId: userId,
+        fromName: fromEmail || "A friend",
+        discoveryField,
+        displayName,
+        message: `${fromEmail || "A friend"} discovered ${displayName}`,
+        createdAt,
+        read: false,
+      });
+    });
+
+    await batch.commit();
+  }
+
+  return { ok: true, notified: friendIds.length };
 });
