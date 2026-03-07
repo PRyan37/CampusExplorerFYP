@@ -190,7 +190,7 @@ const markersById = {};
 const areaShapesById = {};
 //add markers
 function addMarker(location, icon = unknownIcon) {
-  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.name);
+  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
 
   markersById[location.id] = marker;
 
@@ -275,7 +275,7 @@ async function setUpMap() {
           if (!marker) return;
 
           if (flag) {
-            setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+            setMarkerIcon(loc.id, discoveredIcons[loc.id]);
             marker.setOpacity(1);
           } else if (loc.areaId) {
             const areaField = loc.areaId + "Discovered";
@@ -439,7 +439,7 @@ async function success(position) {
 
     // discover this location
     discoveryFlags[loc.discoveryField] = true;
-    setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+    setMarkerIcon(loc.id, discoveredIcons[loc.id]);
     marker.setOpacity(1);
 
     await setDiscoveredOnUser({ discoveryField: loc.discoveryField, displayName: loc.displayName });

@@ -1,7 +1,7 @@
 export const campusAreas = [
   {
     id: "dangan",
-    name: "Dangan Sports Grounds",
+    displayName: "Dangan Sports Grounds",
     polygon: [
       [53.29322609534812, -9.07000780105591],
       [53.29860142556751, -9.081358909606935],
@@ -9,20 +9,17 @@ export const campusAreas = [
       [53.289220381988244, -9.07273292541504],
     ],
     discoveryField: "danganDiscovered",
-    displayName: "Dangan Sports Grounds",
-    iconKey: "dangan",
     color: "#008b2eff",
     fillColor: "#008b2eff",
     fillOpacity: 0.15,
 
-    // style after discovery (keep outline, no fill)
     discoveredColor: "#008b2eff",
     discoveredFillOpacity: 0,
     description: "Description.",
   },
   {
     id: "southBuildings",
-    name: "South Buildings",
+    displayName: "South Buildings",
     polygon: [
       [53.27878811877044, -9.05958634152167],
       [53.279096328315205, -9.058185678663133],
@@ -30,8 +27,6 @@ export const campusAreas = [
       [53.27756637077488, -9.058936018678516],
     ],
     discoveryField: "southBuildingsDiscovered",
-    displayName: "South Buildings",
-    iconKey: "southBuildings",
     color: "#da7400ff",
     fillColor: "#da7400ff",
     fillOpacity: 0.15,
@@ -42,7 +37,7 @@ export const campusAreas = [
   },
   {
     id: "concourse",
-    name: "The Concourse",
+    displayName: "The Concourse",
     polygon: [
       [53.28127058416159, -9.061564207077028],
       [53.28046814147121, -9.058227539062502],
@@ -50,8 +45,6 @@ export const campusAreas = [
       [53.278911880251016, -9.059793949127199],
     ],
     discoveryField: "concourseDiscovered",
-    displayName: "The Concourse",
-    iconKey: "concourse",
     color: "#a00000ff",
     fillColor: "#a00000ff",
     fillOpacity: 0.15,
@@ -62,7 +55,7 @@ export const campusAreas = [
   },
   {
     id: "centralCampus",
-    name: "Central Campus",
+    displayName: "Central Campus",
     polygon: [
       [53.2809172106913, -9.064171314239504],
       [53.28125097185136, -9.061682224273683],
@@ -70,8 +63,6 @@ export const campusAreas = [
       [53.278138979281245, -9.06303405761719],
     ],
     discoveryField: "centralCampusDiscovered",
-    displayName: "Central Campus",
-    iconKey: "centralCampus",
     color: "#0b00a0ff",
     fillColor: "#0b00a0ff",
     fillOpacity: 0.15,
@@ -82,7 +73,7 @@ export const campusAreas = [
   },
   {
     id: "northCampus",
-    name: "North Campus",
+    displayName: "North Campus",
     polygon: [
       [53.28497898322785, -9.06723976135254],
       [53.285492353516496, -9.064053297042848],
@@ -90,8 +81,6 @@ export const campusAreas = [
       [53.280965994053226, -9.0642786026001],
     ],
     discoveryField: "northCampusDiscovered",
-    displayName: "North Campus",
-    iconKey: "northCampus",
     color: "#a7aa00ff",
     fillColor: "#a7aa00ff",
     fillOpacity: 0.15,
@@ -102,7 +91,7 @@ export const campusAreas = [
   },
   {
     id: "studentAccom",
-    name: "Student Accommodation",
+    displayName: "Student Accommodation",
     polygon: [
       [53.28916835403692, -9.072561264038088],
       [53.29430268137945, -9.06874179840088],
@@ -110,8 +99,6 @@ export const campusAreas = [
       [53.28507234536416, -9.06726121902466],
     ],
     discoveryField: "studentAccomDiscovered",
-    displayName: "Student Accommodation",
-    iconKey: "studentAccom",
     color: "#aa0077ff",
     fillColor: "#aa0077ff",
     fillOpacity: 0.15,
@@ -122,7 +109,7 @@ export const campusAreas = [
   },
   {
     id: "galwayCity",
-    name: "Galway City",
+    displayName: "Galway City",
     polygon: [
       [53.270855, -9.048202],
       [53.274859, -9.045303],
@@ -130,8 +117,6 @@ export const campusAreas = [
       [53.272841, -9.052001],
     ],
     discoveryField: "galwayCityDiscovered",
-    displayName: "Galway City",
-    iconKey: "galwayCity",
     color: "#ff0000ff",
     fillColor: "#ff0000ff",
     fillOpacity: 0.15,
