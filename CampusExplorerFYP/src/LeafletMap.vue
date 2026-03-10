@@ -41,16 +41,17 @@ import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
-import { db } from "./firebase/Firebase";
+import { db, app } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
 import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "./firebase/Firebase";
+import { useCampusLocs } from "./stores/campusLocs";
 
 const auth = useAuthStore();
 const toast = useToastStore();
+const campusLocsStore = useCampusLocs();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
 
@@ -84,6 +85,22 @@ const defaultIcon = L.Icon.extend({
 });
 
 const unknownIcon = new defaultIcon({ iconUrl: questionMarkImg });
+
+const iconOptions = {
+  beer: new defaultIcon({ iconUrl: beerImg }),
+  computer: new defaultIcon({ iconUrl: computerImg }),
+  food: new defaultIcon({ iconUrl: foodImg }),
+  engineering: new defaultIcon({ iconUrl: engineeringImg }),
+  book: new defaultIcon({ iconUrl: bookImg }),
+  gym: new defaultIcon({ iconUrl: gymImg }),
+  sports: new defaultIcon({ iconUrl: sportsImg }),
+  social: new defaultIcon({ iconUrl: socialImg }),
+  health: new defaultIcon({ iconUrl: healthImg }),
+  drama: new defaultIcon({ iconUrl: dramaImg }),
+  bank: new defaultIcon({ iconUrl: bankImg }),
+  shop: new defaultIcon({ iconUrl: shopImg }),
+  accom: new defaultIcon({ iconUrl: accomImg }),
+};
 
 const discoveredIcons = {
   sult: new defaultIcon({ iconUrl: beerImg }),
@@ -206,7 +223,9 @@ function addMarker(location, icon = unknownIcon) {
 async function initMapInstance() {
   await nextTick();
   if (map) return;
-
+  console.log("About to fetch campus locations");
+  await campusLocsStore.fetchLocations();
+  console.log("After fetch", campusLocsStore.locations);
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -226,6 +245,15 @@ async function initMapInstance() {
   });
 
   campusIcons.forEach((location) => addMarker(location));
+  campusLocsStore.locations.forEach((location) => {
+    addMarker(location);
+    console.log(
+      "Adding marker for location:",
+      location.displayName,
+      location.areaId,
+      discoveryFlags[location.areaId + "Discovered"],
+    );
+  });
 
   setTimeout(() => {
     map.invalidateSize();
@@ -268,14 +296,17 @@ async function setUpMap() {
           }
         });
 
-        campusIcons.forEach((loc) => {
+        [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
           const flag = !!data[loc.discoveryField];
           discoveryFlags[loc.discoveryField] = flag;
           const marker = markersById[loc.id];
           if (!marker) return;
 
           if (flag) {
-            setMarkerIcon(loc.id, discoveredIcons[loc.id]);
+            setMarkerIcon(
+              loc.id,
+              discoveredIcons[loc.id] ?? iconOptions[loc.iconKey] ?? unknownIcon,
+            );
             marker.setOpacity(1);
           } else if (loc.areaId) {
             const areaField = loc.areaId + "Discovered";
@@ -305,7 +336,7 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
-  campusIcons.forEach((loc) => {
+  [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
     setMarkerIcon(loc.id, unknownIcon);
 
@@ -408,7 +439,7 @@ async function success(position) {
       });
 
       // reveal any markers that belong to this area
-      campusIcons.forEach((loc) => {
+      [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
         if (loc.areaId === area.id) {
           const marker = markersById[loc.id];
           if (marker && !discoveryFlags[loc.discoveryField]) {
@@ -423,7 +454,7 @@ async function success(position) {
   }
 
   // 2) Individual locations
-  for (const loc of campusIcons) {
+  for (const loc of [...campusIcons, ...campusLocsStore.locations]) {
     const marker = markersById[loc.id];
     if (!marker) continue;
 
@@ -439,7 +470,7 @@ async function success(position) {
 
     // discover this location
     discoveryFlags[loc.discoveryField] = true;
-    setMarkerIcon(loc.id, discoveredIcons[loc.id]);
+    setMarkerIcon(setMarkerIcon(loc.id, discoveredIcons[loc.id] ?? iconOptions[loc.iconKey]));
     marker.setOpacity(1);
 
     await setDiscoveredOnUser({ discoveryField: loc.discoveryField, displayName: loc.displayName });

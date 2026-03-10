@@ -1,5 +1,5 @@
 <script setup>
-import FriendsModal from "./AddFriendsModal.vue";
+import FriendsModal from "./AddFriends.vue";
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
@@ -10,18 +10,11 @@ import homeImg from "./assets/homeIcon.png";
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
-const showFriendsModal = ref(false);
 const isHome = computed(() => route.path === "/home");
 const isLeaderboard = computed(() => route.path === "/leaderboard");
 const isJourney = computed(() => route.path === "/journey");
-const isFriendsModal = computed(() => showFriendsModal.value);
+const isAddPage = computed(() => route.path === "/add");
 
-function openFriendsModal() {
-  showFriendsModal.value = true;
-}
-function closeFriendsModal() {
-  showFriendsModal.value = false;
-}
 function goLeaderboard() {
   router.push("/leaderboard");
 }
@@ -30,6 +23,9 @@ function goHome() {
 }
 function goJourney() {
   router.push("/journey");
+}
+function goAddPage() {
+  router.push("/add");
 }
 </script>
 
@@ -48,11 +44,10 @@ function goJourney() {
           <img :src="leaderboardImg" alt="Leaderboard" />
         </div>
 
-        <div @click="openFriendsModal" class="buttons" :class="{ active: isFriendsModal }">
+        <div @click="goAddPage" class="buttons" :class="{ active: isAddPage }">
           <b>+</b>
         </div>
       </div>
-      <FriendsModal v-if="showFriendsModal" @close-friend-modal="closeFriendsModal" />
     </div>
   </header>
 </template>

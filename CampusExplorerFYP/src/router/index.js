@@ -22,6 +22,12 @@ const routes = [
     component: () => import("../views/JourneyPage.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/add",
+    name: "addPage",
+    component: () => import("../views/AddPage.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
