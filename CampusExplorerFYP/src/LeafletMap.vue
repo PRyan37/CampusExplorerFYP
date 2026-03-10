@@ -3,9 +3,11 @@
     <div class="row">
       <div class="col-12 col-md-3 mb-3">
         <div class="d-grid gap-2">
-          <button class="btn btn-outline-danger btn-sm" @click="undiscoverAll">
-            Reset Discoveries
-          </button>
+          <DevOnly>
+            <button class="btn btn-outline-danger btn-sm" @click="undiscoverAll">
+              Reset Discoveries
+            </button>
+          </DevOnly>
           <button class="btn btn-primary btn-sm" @click="getCurrentLocation">
             Center On My Location
           </button>
@@ -48,6 +50,7 @@ import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
+import DevOnly from "./DevOnly.vue";
 
 const auth = useAuthStore();
 const toast = useToastStore();

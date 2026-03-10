@@ -1,6 +1,5 @@
 <script setup>
-import FriendsModal from "./AddFriends.vue";
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import journeyImg from "./assets/journeyIcon.png";
@@ -10,22 +9,30 @@ import homeImg from "./assets/homeIcon.png";
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+
 const isHome = computed(() => route.path === "/home");
 const isLeaderboard = computed(() => route.path === "/leaderboard");
 const isJourney = computed(() => route.path === "/journey");
 const isAddPage = computed(() => route.path === "/add");
 
+function pushWithCurrentQuery(path) {
+  router.push({
+    path,
+    query: { ...route.query },
+  });
+}
+
 function goLeaderboard() {
-  router.push("/leaderboard");
+  pushWithCurrentQuery("/leaderboard");
 }
 function goHome() {
-  router.push("/home");
+  pushWithCurrentQuery("/home");
 }
 function goJourney() {
-  router.push("/journey");
+  pushWithCurrentQuery("/journey");
 }
 function goAddPage() {
-  router.push("/add");
+  pushWithCurrentQuery("/add");
 }
 </script>
 
