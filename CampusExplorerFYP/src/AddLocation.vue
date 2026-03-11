@@ -147,11 +147,33 @@ L.Icon.Default.mergeOptions({
     iconUrl,
     shadowUrl,
 });
-
+const duplicateLocation = computed(() =>
+    campusLocsStore.locations.find((loc) => loc.id === locationId.value.trim()),
+);
 const markersById = {};
 const areaShapesById = {};
 //add markers
+function isPointInPolygon(point, polygon) {
+    const [lat, lng] = point;
+    let inside = false;
 
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const [latI, lngI] = polygon[i];
+        const [latJ, lngJ] = polygon[j];
+
+        const intersects =
+            lngI > lng !== lngJ > lng && lat < ((latJ - latI) * (lng - lngI)) / (lngJ - lngI) + latI;
+
+        if (intersects) inside = !inside;
+    }
+
+    return inside;
+}
+
+function findAreaIdForLatLng(lat, lng) {
+    const match = campusAreas.find((area) => isPointInPolygon([lat, lng], area.polygon));
+    return match?.id ?? "";
+}
 function addMarker(location) {
     const icon = iconOptions[location.iconKey];
     const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
@@ -163,6 +185,21 @@ function addMarker(location) {
 async function onSubmit() {
     try {
         isSubmitting.value = true;
+        await campusLocsStore.fetchLocations();
+
+        const trimmedId = locationId.value.trim();
+        const existing = campusLocsStore.locations.find((loc) => loc.id === trimmedId);
+        if (existing) {
+            const shouldReplace = window.confirm(
+                `A location with id "${trimmedId}" already exists.\n\n` +
+                `If you continue, the old marker will be replaced.\n\n` +
+                `Do you want to continue?`,
+            );
+
+            if (!shouldReplace) {
+                return;
+            }
+        }
         await addLocation({
             locationId: locationId.value,
             displayName: displayName.value,
@@ -179,6 +216,8 @@ async function onSubmit() {
             areaId: areaId.value,
             iconKey: selectedIconKey.value,
         });
+
+        loadFirestoreMarkers();
     } catch (e) {
         console.error("addLocation failed:", e);
     } finally {
@@ -196,6 +235,16 @@ onBeforeUnmount(() => {
         map = null;
     }
 });
+async function loadFirestoreMarkers() {
+    console.log("[AddLocation] Loading markers from Firestore...");
+    await campusLocsStore.fetchLocations();
+
+    campusLocsStore.locations.forEach((location) => {
+        if (markersById[location.id]);
+        addMarker(location);
+    });
+}
+
 async function initMapInstance() {
     await nextTick();
 
@@ -211,6 +260,7 @@ async function initMapInstance() {
 
         latitude.value = lat.toFixed(6);
         longitude.value = lng.toFixed(6);
+        areaId.value = findAreaIdForLatLng(lat, lng);
 
         if (marker) {
             marker.setLatLng([lat, lng]);
@@ -229,11 +279,8 @@ async function initMapInstance() {
         }).addTo(map);
         areaShapesById[area.id] = poly;
     });
-
     campusIcons.forEach((location) => addMarker(location));
-    campusLocsStore.locations.forEach((location) => {
-        addMarker(location);
-    });
+    loadFirestoreMarkers();
 
     setTimeout(() => {
         map.invalidateSize();
@@ -261,5 +308,14 @@ async function initMapInstance() {
     width: 48px;
     height: 48px;
     object-fit: contain;
+}
+
+.duplicate-warning {
+    margin-top: 0.5rem;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
 }
 </style>
