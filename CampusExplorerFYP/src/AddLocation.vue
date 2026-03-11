@@ -55,7 +55,7 @@ import beerImg from "./assets/BeerIcon.png";
 import computerImg from "./assets/ComputerIcon.png";
 import foodImg from "./assets/FoodIcon.png";
 import engineeringImg from "./assets/EngineeringIcon.png";
-
+import { useToastStore } from "./stores/toast";
 import bookImg from "./assets/BookIcon.png";
 import gymImg from "./assets/GymIcon.png";
 import sportsImg from "./assets/SportsIcon.png";
@@ -83,6 +83,7 @@ const longitude = ref("");
 const locationId = ref("");
 const displayName = ref("");
 const areaId = ref("");
+const toast = useToastStore();
 const functions = getFunctions(app);
 const campusLocsStore = useCampusLocs();
 const addLocation = httpsCallable(functions, "addLocation");
@@ -147,9 +148,6 @@ L.Icon.Default.mergeOptions({
     iconUrl,
     shadowUrl,
 });
-const duplicateLocation = computed(() =>
-    campusLocsStore.locations.find((loc) => loc.id === locationId.value.trim()),
-);
 const markersById = {};
 const areaShapesById = {};
 //add markers
@@ -184,6 +182,16 @@ function addMarker(location) {
 }
 async function onSubmit() {
     try {
+        if (!selectedIconKey.value) {
+            toast.show("Please select an icon.", { type: "error", duration: 4000 });
+            return;
+        }
+
+        if (!areaId.value) {
+            toast.show("Please place the marker inside a valid area.", { type: "error", duration: 4000 });
+            return;
+        }
+
         isSubmitting.value = true;
         await campusLocsStore.fetchLocations();
 
@@ -216,12 +224,13 @@ async function onSubmit() {
             areaId: areaId.value,
             iconKey: selectedIconKey.value,
         });
-
-        loadFirestoreMarkers();
     } catch (e) {
         console.error("addLocation failed:", e);
+
+        toast.show(e.message, { type: "error", duration: 5000 });
     } finally {
         isSubmitting.value = false;
+        loadFirestoreMarkers();
     }
 }
 

@@ -314,6 +314,12 @@ exports.addLocation = onCall(async (request) => {
   if (data?.longitude === "" || data?.longitude === undefined || Number.isNaN(longitude)) {
     throw new HttpsError("invalid-argument", "longitude is required.");
   }
+  if (!areaId) {
+    throw new HttpsError("invalid-argument", "areaId is required.");
+  }
+  if (!iconKey) {
+    throw new HttpsError("invalid-argument", "iconKey is required.");
+  }
 
   await db
     .collection("campusLocations")
