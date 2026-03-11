@@ -105,30 +105,6 @@ const iconOptions = {
   accom: new defaultIcon({ iconUrl: accomImg }),
 };
 
-const discoveredIcons = {
-  sult: new defaultIcon({ iconUrl: beerImg }),
-  computerScienceBuilding: new defaultIcon({ iconUrl: computerImg }),
-  anBhiaLann: new defaultIcon({ iconUrl: foodImg }),
-  engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
-  baileyAllen: new defaultIcon({ iconUrl: bookImg }),
-  kingfisher: new defaultIcon({ iconUrl: gymImg }),
-  gaaPitches: new defaultIcon({ iconUrl: sportsImg }),
-  theHub: new defaultIcon({ iconUrl: socialImg }),
-  healthCentre: new defaultIcon({ iconUrl: healthImg }),
-  humanBiologyBuilding: new defaultIcon({ iconUrl: bookImg }),
-  arasUiChathail: new defaultIcon({ iconUrl: bookImg }),
-  mailServicesCenter: new defaultIcon({ iconUrl: bookImg }),
-  dramaCenter: new defaultIcon({ iconUrl: dramaImg }),
-  orbsenBuilding: new defaultIcon({ iconUrl: bookImg }),
-  boi: new defaultIcon({ iconUrl: bankImg }),
-  smokeys: new defaultIcon({ iconUrl: foodImg }),
-  studentUnionShop: new defaultIcon({ iconUrl: shopImg }),
-  jamesHardimanLibrary: new defaultIcon({ iconUrl: bookImg }),
-  artsMillenniumBuilding: new defaultIcon({ iconUrl: bookImg }),
-  corribVillage: new defaultIcon({ iconUrl: accomImg }),
-  dunlinVillage: new defaultIcon({ iconUrl: accomImg }),
-};
-
 const discoveryFlags = {
   computerScienceBuildingDiscovered: false,
   anBhiaLannDiscovered: false,
@@ -306,10 +282,7 @@ async function setUpMap() {
           if (!marker) return;
 
           if (flag) {
-            setMarkerIcon(
-              loc.id,
-              discoveredIcons[loc.id] ?? iconOptions[loc.iconKey] ?? unknownIcon,
-            );
+            setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
             marker.setOpacity(1);
           } else if (loc.areaId) {
             const areaField = loc.areaId + "Discovered";
@@ -473,7 +446,7 @@ async function success(position) {
 
     // discover this location
     discoveryFlags[loc.discoveryField] = true;
-    setMarkerIcon(setMarkerIcon(loc.id, discoveredIcons[loc.id] ?? iconOptions[loc.iconKey]));
+    setMarkerIcon(loc.id, iconOptions[loc.iconKey]);
     marker.setOpacity(1);
 
     await setDiscoveredOnUser({ discoveryField: loc.discoveryField, displayName: loc.displayName });

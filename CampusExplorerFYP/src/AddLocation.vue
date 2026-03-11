@@ -35,7 +35,7 @@
                 <label for="iconChoice">Icon</label>
                 <select id="iconChoice" v-model="selectedIconKey">
                     <option disabled value="">Select an icon</option>
-                    <option v-for="option in iconOptions" :key="option.value" :value="option.value">
+                    <option v-for="option in iconChoices" :key="option.value" :value="option.value">
                         {{ option.label }}
                     </option>
                 </select>
@@ -74,6 +74,8 @@ import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "./firebase/Firebase";
 import { campusAreas } from "./config/campusAreas";
+import { useCampusLocs } from "./stores/campusLocs";
+import { campusIcons } from "./config/campusIcons";
 
 const mapEl = ref(null);
 const latitude = ref("");
@@ -82,6 +84,7 @@ const locationId = ref("");
 const displayName = ref("");
 const areaId = ref("");
 const functions = getFunctions(app);
+const campusLocsStore = useCampusLocs();
 const addLocation = httpsCallable(functions, "addLocation");
 
 const areaOptions = computed(() =>
@@ -94,8 +97,7 @@ const areaOptions = computed(() =>
 let map = null;
 let marker = null;
 const isSubmitting = ref(false);
-
-const iconOptions = [
+const iconChoices = [
     { label: "Beer", value: "beer", preview: beerImg },
     { label: "Computer", value: "computer", preview: computerImg },
     { label: "Food", value: "food", preview: foodImg },
@@ -110,11 +112,34 @@ const iconOptions = [
     { label: "Shop", value: "shop", preview: shopImg },
     { label: "Accommodation", value: "accom", preview: accomImg },
 ];
-
 const selectedIconKey = ref("");
 const selectedIcon = computed(() =>
-    iconOptions.find((option) => option.value === selectedIconKey.value),
+    iconChoices.find((option) => option.value === selectedIconKey.value),
 );
+const defaultIcon = L.Icon.extend({
+    options: {
+        iconSize: [32, 32],
+        shadowSize: [50, 64],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+    },
+});
+
+const iconOptions = {
+    beer: new defaultIcon({ iconUrl: beerImg }),
+    computer: new defaultIcon({ iconUrl: computerImg }),
+    food: new defaultIcon({ iconUrl: foodImg }),
+    engineering: new defaultIcon({ iconUrl: engineeringImg }),
+    book: new defaultIcon({ iconUrl: bookImg }),
+    gym: new defaultIcon({ iconUrl: gymImg }),
+    sports: new defaultIcon({ iconUrl: sportsImg }),
+    social: new defaultIcon({ iconUrl: socialImg }),
+    health: new defaultIcon({ iconUrl: healthImg }),
+    drama: new defaultIcon({ iconUrl: dramaImg }),
+    bank: new defaultIcon({ iconUrl: bankImg }),
+    shop: new defaultIcon({ iconUrl: shopImg }),
+    accom: new defaultIcon({ iconUrl: accomImg }),
+};
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -123,6 +148,18 @@ L.Icon.Default.mergeOptions({
     shadowUrl,
 });
 
+const markersById = {};
+const areaShapesById = {};
+//add markers
+
+function addMarker(location) {
+    const icon = iconOptions[location.iconKey];
+    const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
+
+    marker.setOpacity(1);
+    markersById[location.id] = marker;
+    return marker;
+}
 async function onSubmit() {
     try {
         isSubmitting.value = true;
@@ -151,6 +188,16 @@ async function onSubmit() {
 
 onMounted(async () => {
     await nextTick();
+    initMapInstance();
+});
+onBeforeUnmount(() => {
+    if (map) {
+        map.remove();
+        map = null;
+    }
+});
+async function initMapInstance() {
+    await nextTick();
 
     map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
@@ -171,13 +218,27 @@ onMounted(async () => {
             marker = L.marker([lat, lng]).addTo(map);
         }
     });
-});
-onBeforeUnmount(() => {
-    if (map) {
-        map.remove();
-        map = null;
-    }
-});
+
+    // add all areas and icons
+    campusAreas.forEach((area) => {
+        const poly = L.polygon(area.polygon, {
+            color: area.color ?? "#1e90ff",
+            fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+            fillOpacity: 0,
+            weight: 2,
+        }).addTo(map);
+        areaShapesById[area.id] = poly;
+    });
+
+    campusIcons.forEach((location) => addMarker(location));
+    campusLocsStore.locations.forEach((location) => {
+        addMarker(location);
+    });
+
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 0);
+}
 </script>
 
 <style scoped>
