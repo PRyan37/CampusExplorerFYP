@@ -1,7 +1,7 @@
+<!-- filepath: c:\Users\ryanp\Git\CampusExplorer\CampusExplorerFYP\src\Activity.vue -->
 <script setup>
-import { ref } from "vue";
 import { useAuthStore } from "./stores/auth";
-import { onMounted, computed } from "vue";
+import { onMounted, computed, ref } from "vue";
 import { useFriendsStore } from "@/stores/friends";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase/Firebase";
@@ -9,11 +9,12 @@ import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 
 const friendsStore = useFriendsStore();
-
 const auth = useAuthStore();
 
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
+const selectedTimeRange = ref("ever");
+
 const discoveryMetaByField = [
     ...campusIcons.map((loc) => ({
         field: loc.discoveryField,
@@ -29,17 +30,32 @@ const discoveryMetaByField = [
 }, {});
 
 const filteredDiscoveries = computed(() => {
-    if (!selectedFriendId.value) return recentDiscoveries.value;
+    let filtered = recentDiscoveries.value;
 
     if (selectedFriendId.value === "me") {
-        return recentDiscoveries.value.filter((e) => e.email === auth.user.email);
+        filtered = filtered.filter((e) => e.email === auth.user.email);
+    } else if (selectedFriendId.value) {
+        const friend = friendsStore.friendsList.find((f) => f.friendId === selectedFriendId.value);
+        if (!friend) return [];
+        filtered = filtered.filter((e) => e.email === friend.friendEmail);
     }
 
-    const friend = friendsStore.friendsList.find((f) => f.friendId === selectedFriendId.value);
-    if (!friend) return [];
+    if (selectedTimeRange.value !== "ever") {
+        const now = Date.now();
+        const rangeMsByKey = {
+            "1h": 1 * 60 * 60 * 1000,
+            "6h": 6 * 60 * 60 * 1000,
+            "24h": 24 * 60 * 60 * 1000,
+            "1w": 7 * 24 * 60 * 60 * 1000,
+        };
 
-    return recentDiscoveries.value.filter((e) => e.email === friend.friendEmail);
+        const cutoff = now - rangeMsByKey[selectedTimeRange.value];
+        filtered = filtered.filter((e) => e.time.getTime() >= cutoff);
+    }
+
+    return filtered;
 });
+
 async function buildActivityEntriesForUser(userId, email) {
     const userRef = doc(db, "users", userId);
     const userDoc = await getDoc(userRef);
@@ -48,7 +64,6 @@ async function buildActivityEntriesForUser(userId, email) {
     const userData = userDoc.data();
     const activityEntries = [];
 
-    // iterate over all discovery fields from campusIcons and campusAreas
     for (const [discoveryField, meta] of Object.entries(discoveryMetaByField)) {
         const ts = userData[discoveryField + "At"];
         if (!ts) continue;
@@ -67,11 +82,8 @@ onMounted(async () => {
     await friendsStore.fetchFriends();
 
     const activityEntries = [];
-
-    // current user
     activityEntries.push(...(await buildActivityEntriesForUser(auth.user.uid, auth.user.email)));
 
-    // friends
     for (const friend of friendsStore.friendsList) {
         const friendEntries = await buildActivityEntriesForUser(friend.friendId, friend.friendEmail);
         activityEntries.push(...friendEntries);
@@ -82,36 +94,92 @@ onMounted(async () => {
 </script>
 
 <template>
-    <h1>Recent Discoveries</h1>
-    <label for="friendFilter">Filter by Friend:</label>
+    <div class="activity-card">
+        <h1 class="title">Recent Discoveries</h1>
 
-    <select id="friendFilter" name="friendFilter" v-model="selectedFriendId">
-        <option value="">-- All --</option>
-        <option value="me">Myself</option>
-        <option v-for="friend in friendsStore.friendsList" :key="friend.friendId" :value="friend.friendId">
-            {{ friend.friendEmail }}
-        </option>
-    </select>
-    <div class="leaderboard-table">
-        <ul>
-            <li v-for="entry in filteredDiscoveries" :key="entry.email + entry.location + entry.time">
-                <b>{{ entry.email }}</b> discovered <b>{{ entry.location }}</b> at
-                {{ entry.time.toLocaleString() }}
+        <div class="filter-row">
+            <label for="friendFilter">Filter by Friend:</label>
+            <select id="friendFilter" name="friendFilter" v-model="selectedFriendId">
+                <option value="">-- All --</option>
+                <option value="me">Myself</option>
+                <option v-for="friend in friendsStore.friendsList" :key="friend.friendId" :value="friend.friendId">
+                    {{ friend.friendEmail }}
+                </option>
+            </select>
+        </div>
+
+        <div class="filter-row">
+            <label for="timeFilter">Filter by Time:</label>
+            <select id="timeFilter" name="timeFilter" v-model="selectedTimeRange">
+                <option value="1h">Last 1 Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="1w">Last 1 Week</option>
+                <option value="ever">Ever</option>
+            </select>
+        </div>
+
+        <ul class="activity-list">
+            <li v-for="entry in filteredDiscoveries" :key="`${entry.email}-${entry.location}-${entry.time.getTime()}`"
+                class="activity-item">
+                <span class="email">{{ entry.email }}</span>
+                discovered
+                <span class="location">{{ entry.location }}</span>
+
+                <div class="time">
+                    {{ entry.time.toLocaleString() }}
+                </div>
             </li>
         </ul>
     </div>
 </template>
 
 <style scoped>
-.app-root {
-    margin: 0;
+.activity-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.title {
+    margin-bottom: 15px;
+}
+
+.filter-row {
+    margin-bottom: 15px;
+}
+
+select {
+    margin-left: 8px;
+    padding: 5px;
+}
+
+.activity-list {
+    list-style: none;
     padding: 0;
 }
 
-.leaderboard-table {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin: 12px 0;
+.activity-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-item:hover {
+    background: #f7f7f7;
+}
+
+.email {
+    font-weight: 600;
+}
+
+.location {
+    font-weight: 600;
+    color: #79153d;
+}
+
+.time {
+    font-size: 0.9em;
+    color: #666;
 }
 </style>

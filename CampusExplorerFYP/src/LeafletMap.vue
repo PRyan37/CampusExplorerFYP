@@ -1,28 +1,21 @@
 <template>
-  <div class="container-fluid py-3">
-    <div class="row">
-      <div class="col-12 col-md-3 mb-3">
-        <div class="d-grid gap-2">
-          <DevOnly>
-            <button class="btn btn-outline-danger btn-sm" @click="undiscoverAll">
-              Reset Discoveries
-            </button>
-          </DevOnly>
-          <button class="btn btn-primary btn-sm" @click="getCurrentLocation">
-            Center On My Location
-          </button>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-9">
-        <div id="map" ref="mapEl" class="leaflet-map"></div>
-      </div>
+  <div class="leaflet-map-container">
+    <div class="map-buttons">
+      <DevOnly>
+        <button class="btn reset-discoveries-button btn-sm" @click="undiscoverAll">
+          Reset Discoveries
+        </button>
+      </DevOnly>
+      <button class="btn btn-sm center-on-my-location" @click="getCurrentLocation">
+        Center On My Location
+      </button>
     </div>
+    <div id="map" ref="mapEl" class="leaflet-map"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -51,12 +44,15 @@ import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
 import DevOnly from "./DevOnly.vue";
+import { useRoute } from "vue-router";
 
 const auth = useAuthStore();
 const toast = useToastStore();
 const campusLocsStore = useCampusLocs();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
+const route = useRoute();
+const developerMode = computed(() => route.query.dev === "true");
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -300,7 +296,9 @@ async function setUpMap() {
 
   clickHandler = (e) => {
     console.log("Map click:", e.latlng);
-    success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
+    if (developerMode.value) {
+      success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
+    }
   };
   map.on("click", clickHandler);
 
@@ -476,9 +474,42 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-:deep(#map.leaflet-container) {
-  height: 60vh;
-  min-height: 400px;
+.leaflet-map-container {
+  position: relative;
   width: 100%;
+  height: 100%;
+}
+
+.reset-discoveries-button {
+  background: white !important;
+  border: 1px solid #79153d !important;
+  color: #79153d !important;
+}
+
+.map-buttons {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.center-on-my-location {
+  background-color: #79153d !important;
+  border-color: #79153d !important;
+  color: #ffffff !important;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+:deep(#map.leaflet-container) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 </style>

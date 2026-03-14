@@ -1,3 +1,85 @@
+<template>
+    <TopBar />
+    <h1 class="title">Journey</h1>
+    <div class="progress-section">
+        <h2>Progress</h2>
+        <p class="progress-text">{{ discoveredLocations }} / {{ totalLocations }} discovered</p>
+
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }">
+                <span v-if="progressPercent > 10" class="progress-label"> {{ progressPercent }}% </span>
+            </div>
+        </div>
+
+        <p v-if="progressPercent === 100" class="complete-msg">You've discovered everything!</p>
+        <p>You have a score of {{ myScore }}</p>
+    </div>
+
+    <div class="locations-section">
+        <h2>Locations</h2>
+        <div v-for="area in areaGroups" :key="area.field" class="area-group">
+            <div class="area-header" :class="{
+                discovered: area.discovered,
+                undiscovered: !area.discovered,
+                clickable: area.discovered,
+            }" :style="{ borderLeftColor: area.color }" @click="toggleDescription(area)">
+                <span class="status-icon">{{ area.discovered ? "✔" : "?" }}</span>
+                <span class="loc-name">{{ area.discovered ? area.name : "???" }}</span>
+                <span class="area-badge" :style="{ backgroundColor: area.color }">Area</span>
+                <span v-if="area.discovered" class="expand-arrow">
+                    {{ expandedField === area.field ? "▲" : "▼" }}
+                </span>
+            </div>
+
+            <div class="description-slider" :class="{ open: expandedField === area.field }">
+                <p class="description-text">{{ area.description }}</p>
+            </div>
+
+            <ul class="children-list">
+                <template v-for="child in area.children" :key="child.field">
+                    <li :class="{
+                        discovered: child.discovered,
+                        undiscovered: !child.discovered,
+                        clickable: child.discovered,
+                    }" @click="toggleDescription(child)">
+                        <span class="status-icon">{{ child.discovered ? "✔" : "?" }}</span>
+                        <span class="loc-name">{{ child.discovered ? child.name : "???" }}</span>
+                        <span v-if="child.discovered" class="expand-arrow">
+                            {{ expandedField === child.field ? "▲" : "▼" }}
+                        </span>
+                    </li>
+                    <li class="description-slider" :class="{ open: expandedField === child.field }">
+                        <p class="description-text">{{ child.description }}</p>
+                    </li>
+                </template>
+            </ul>
+        </div>
+
+        <!-- Standalone icons -->
+        <div v-if="standaloneIcons.length" class="standalone-group">
+            <h3>Other Locations</h3>
+            <ul class="children-list">
+                <template v-for="loc in standaloneIcons" :key="loc.field">
+                    <li :class="{
+                        discovered: loc.discovered,
+                        undiscovered: !loc.discovered,
+                        clickable: loc.discovered,
+                    }" @click="toggleDescription(loc)">
+                        <span class="status-icon">{{ loc.discovered ? "✔" : "?" }}</span>
+                        <span class="loc-name">{{ loc.discovered ? loc.name : "???" }}</span>
+                        <span v-if="loc.discovered" class="expand-arrow">
+                            {{ expandedField === loc.field ? "▲" : "▼" }}
+                        </span>
+                    </li>
+                    <li class="description-slider" :class="{ open: expandedField === loc.field }">
+                        <p class="description-text">{{ loc.description }}</p>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+</template>
+
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import TopBar from "@/TopBar.vue";
@@ -95,90 +177,6 @@ onMounted(async () => {
 });
 </script>
 
-<template>
-    <TopBar />
-
-    <h1 class="title">Journey</h1>
-
-    <div class="progress-section">
-        <h2>Progress</h2>
-        <p class="progress-text">{{ discoveredLocations }} / {{ totalLocations }} discovered</p>
-
-        <div class="progress-bar-bg">
-            <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }">
-                <span v-if="progressPercent > 10" class="progress-label"> {{ progressPercent }}% </span>
-            </div>
-        </div>
-
-        <p v-if="progressPercent === 100" class="complete-msg">You've discovered everything!</p>
-        <p>You have a score of {{ myScore }}</p>
-    </div>
-
-    <div class="locations-section">
-        <h2>Locations</h2>
-        <div v-for="area in areaGroups" :key="area.field" class="area-group">
-            <div class="area-header" :class="{
-                discovered: area.discovered,
-                undiscovered: !area.discovered,
-                clickable: area.discovered,
-            }" :style="{ borderLeftColor: area.color }" @click="toggleDescription(area)">
-                <span class="status-icon">{{ area.discovered ? "✔" : "?" }}</span>
-                <span class="loc-name">{{ area.discovered ? area.name : "???" }}</span>
-                <span class="area-badge" :style="{ backgroundColor: area.color }">Area</span>
-                <span v-if="area.discovered" class="expand-arrow">
-                    {{ expandedField === area.field ? "▲" : "▼" }}
-                </span>
-            </div>
-
-            <div class="description-slider" :class="{ open: expandedField === area.field }">
-                <p class="description-text">{{ area.description }}</p>
-            </div>
-
-            <ul class="children-list">
-                <template v-for="child in area.children" :key="child.field">
-                    <li :class="{
-                        discovered: child.discovered,
-                        undiscovered: !child.discovered,
-                        clickable: child.discovered,
-                    }" @click="toggleDescription(child)">
-                        <span class="status-icon">{{ child.discovered ? "✔" : "?" }}</span>
-                        <span class="loc-name">{{ child.discovered ? child.name : "???" }}</span>
-                        <span v-if="child.discovered" class="expand-arrow">
-                            {{ expandedField === child.field ? "▲" : "▼" }}
-                        </span>
-                    </li>
-                    <li class="description-slider" :class="{ open: expandedField === child.field }">
-                        <p class="description-text">{{ child.description }}</p>
-                    </li>
-                </template>
-            </ul>
-        </div>
-
-        <!-- Standalone icons -->
-        <div v-if="standaloneIcons.length" class="standalone-group">
-            <h3>Other Locations</h3>
-            <ul class="children-list">
-                <template v-for="loc in standaloneIcons" :key="loc.field">
-                    <li :class="{
-                        discovered: loc.discovered,
-                        undiscovered: !loc.discovered,
-                        clickable: loc.discovered,
-                    }" @click="toggleDescription(loc)">
-                        <span class="status-icon">{{ loc.discovered ? "✔" : "?" }}</span>
-                        <span class="loc-name">{{ loc.discovered ? loc.name : "???" }}</span>
-                        <span v-if="loc.discovered" class="expand-arrow">
-                            {{ expandedField === loc.field ? "▲" : "▼" }}
-                        </span>
-                    </li>
-                    <li class="description-slider" :class="{ open: expandedField === loc.field }">
-                        <p class="description-text">{{ loc.description }}</p>
-                    </li>
-                </template>
-            </ul>
-        </div>
-    </div>
-</template>
-
 <style scoped>
 .title {
     margin: 0;
@@ -188,6 +186,7 @@ onMounted(async () => {
 }
 
 .progress-section {
+    color: #79153d;
     margin: 40px auto 0;
     max-width: 500px;
     padding: 0 20px;
@@ -196,7 +195,6 @@ onMounted(async () => {
 .progress-text {
     font-size: 1.1rem;
     margin-bottom: 8px;
-    color: #333;
 }
 
 .progress-bar-bg {
@@ -232,6 +230,7 @@ onMounted(async () => {
 }
 
 .locations-section {
+    color: #79153d;
     margin: 30px auto 40px;
     max-width: 500px;
     padding: 0 20px;
@@ -315,7 +314,6 @@ onMounted(async () => {
 .description-text {
     margin: 0;
     font-size: 0.9rem;
-    color: #555;
     line-height: 1.4;
 }
 

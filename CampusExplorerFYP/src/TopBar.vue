@@ -1,14 +1,17 @@
 <script setup>
-import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import journeyImg from "./assets/journeyIcon.png";
 import leaderboardImg from "./assets/leaderboard.png";
 import homeImg from "./assets/homeIcon.png";
+import { computed, ref, onBeforeUnmount } from "vue";
+import { useFriendRequestsStore } from "./stores/friendRequests";
+const friendRequestsStore = useFriendRequestsStore();
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const menuOpen = ref(false);
 
 const isHome = computed(() => route.path === "/home");
 const isLeaderboard = computed(() => route.path === "/leaderboard");
@@ -34,12 +37,46 @@ function goJourney() {
 function goAddPage() {
   pushWithCurrentQuery("/add");
 }
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value;
+}
+
+async function logout() {
+  menuOpen.value = false;
+  await auth.logout();
+  router.push({
+    path: "/login",
+    query: { ...route.query },
+  });
+}
+
+function handleDocumentClick(e) {
+  if (!e.target.closest(".profile-menu")) {
+    menuOpen.value = false;
+  }
+}
+
+document.addEventListener("click", handleDocumentClick);
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleDocumentClick);
+});
 </script>
 
 <template>
   <header class="top-bar">
     <div class="container-fluid d-flex align-items-center justify-content-between py-2 px-3">
-      <h2 class="auth-name mb-0">{{ auth.displayName }}</h2>
+      <div class="profile-menu">
+        <button class="auth-name-button" @click.stop="toggleMenu">
+          <h2 class="auth-name mb-0">{{ auth.displayName }}</h2>
+        </button>
+
+        <div v-if="menuOpen" class="profile-dropdown">
+          <button class="dropdown-item-button" @click="logout">Logout</button>
+        </div>
+      </div>
+
       <div class="d-flex align-items-center gap-2 ms-2">
         <div @click="goHome" class="buttons" :class="{ active: isHome }">
           <img :src="homeImg" alt="Home" />
@@ -49,8 +86,8 @@ function goAddPage() {
         </div>
         <div @click="goLeaderboard" class="buttons" :class="{ active: isLeaderboard }">
           <img :src="leaderboardImg" alt="Leaderboard" />
+          <span v-if="friendRequestsStore.hasIncoming" class="notification-dot"></span>
         </div>
-
         <div @click="goAddPage" class="buttons" :class="{ active: isAddPage }">
           <b>+</b>
         </div>
@@ -61,12 +98,23 @@ function goAddPage() {
 
 <style scoped>
 .top-bar {
-  background-color: #9fb9ff;
+  background-color: #79153d;
   width: 100%;
 }
 
 .buttons.active {
   background: rgb(255, 230, 0);
+}
+
+.auth-name-button {
+  background: white;
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .buttons {
@@ -86,6 +134,43 @@ function goAddPage() {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .auth-name {
+    font-size: 0.8rem;
+    max-width: 45vw;
+  }
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 140px;
+  background: white;
+  border: 2px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  z-index: 4000;
+  overflow: hidden;
+}
+
+.dropdown-item-button {
+  width: 100%;
+  border: 0;
+  background: white;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-item-button:hover {
+  background: #f3f4f6;
 }
 
 @media (max-width: 480px) {
