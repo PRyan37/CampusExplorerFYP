@@ -13,16 +13,16 @@
                 Areas
             </button>
         </div>
+        <div v-if="activeTab === 'friend'">
+            <AddFriends />
+        </div>
+        <div v-if="activeTab === 'location'">
+            <AddLocation />
+        </div>
+        <div v-if="activeTab === 'area'">
+            <AddArea />
+        </div>
     </DevOnly>
-    <div v-if="activeTab === 'friend'">
-        <AddFriends />
-    </div>
-    <div v-if="activeTab === 'location'">
-        <AddLocation />
-    </div>
-    <div v-if="activeTab === 'area'">
-        <AddArea />
-    </div>
 </template>
 
 <script setup>
