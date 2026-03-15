@@ -102,6 +102,21 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
+.buttons {
+  position: relative;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ff3b30;
+  border: 2px solid #79153d;
+}
+
 .buttons.active {
   border-color: #3b82f6;
 }
