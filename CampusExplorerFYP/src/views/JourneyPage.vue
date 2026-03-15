@@ -153,9 +153,9 @@ onMounted(async () => {
     await campusLocsStore.fetchLocations();
     buildAreaGroups();
 
-    myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
-
     if (auth.user) {
+        myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
+
         const userRef = doc(db, "users", auth.user.uid);
         const snap = await getDoc(userRef);
 
