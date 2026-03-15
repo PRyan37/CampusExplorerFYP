@@ -35,3 +35,34 @@ import { ref } from "vue";
 
 const activeTab = ref("friend");
 </script>
+
+<style scoped>
+.switch_bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+    background-color: #f4f6f8;
+    border-bottom: 1px solid #ddd;
+}
+
+.switch_button {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.switch_button:hover {
+    background-color: #e2e8f0;
+}
+
+.switch_button.active {
+    background-color: #79153d;
+    color: white;
+}
+</style>

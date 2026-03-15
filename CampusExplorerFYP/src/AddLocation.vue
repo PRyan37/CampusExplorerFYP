@@ -14,6 +14,12 @@
             </div>
 
             <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" v-model="description" rows="4"
+                    placeholder="Enter a description for this location"></textarea>
+            </div>
+
+            <div class="form-group">
                 <label for="lat">Latitude</label>
                 <input id="lat" v-model="latitude" type="number" step="any" />
             </div>
@@ -22,6 +28,7 @@
                 <label for="lng">Longitude</label>
                 <input id="lng" v-model="longitude" type="number" step="any" />
             </div>
+
             <div class="form-group">
                 <label for="areaId">Area ID</label>
                 <select id="areaId" v-model="areaId">
@@ -31,6 +38,7 @@
                     </option>
                 </select>
             </div>
+
             <div class="form-group">
                 <label for="iconChoice">Icon</label>
                 <select id="iconChoice" v-model="selectedIconKey">
@@ -40,16 +48,18 @@
                     </option>
                 </select>
             </div>
+
             <button type="submit" :disabled="isSubmitting">Add Location</button>
         </form>
+
         <div v-if="selectedIcon" class="icon-preview">
             <p>Selected icon:</p>
             <img :src="selectedIcon.preview" :alt="selectedIcon.label" />
         </div>
+
         <div ref="mapEl" class="leaflet-map"></div>
     </div>
 </template>
-
 <script setup>
 import beerImg from "./assets/BeerIcon.png";
 import computerImg from "./assets/ComputerIcon.png";
@@ -82,6 +92,7 @@ const latitude = ref("");
 const longitude = ref("");
 const locationId = ref("");
 const displayName = ref("");
+const description = ref("");
 const areaId = ref("");
 const toast = useToastStore();
 const functions = getFunctions(app);
@@ -211,6 +222,7 @@ async function onSubmit() {
         await addLocation({
             locationId: locationId.value,
             displayName: displayName.value,
+            description: description.value,
             latitude: latitude.value,
             longitude: longitude.value,
             areaId: areaId.value,
@@ -219,6 +231,7 @@ async function onSubmit() {
         console.log("Submitting location:", {
             locationId: locationId.value,
             displayName: displayName.value,
+            description: description.value,
             latitude: latitude.value,
             longitude: longitude.value,
             areaId: areaId.value,
@@ -226,7 +239,6 @@ async function onSubmit() {
         });
     } catch (e) {
         console.error("addLocation failed:", e);
-
         toast.show(e.message, { type: "error", duration: 5000 });
     } finally {
         isSubmitting.value = false;
@@ -296,16 +308,96 @@ async function initMapInstance() {
     }, 0);
 }
 </script>
-
 <style scoped>
-.leaflet-map {
-    width: 100%;
-    height: 400px;
-    margin-top: 1rem;
+.add-location {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+input,
+select,
+textarea {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+textarea {
+    resize: vertical;
+}
+
+form {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
 }
 
 .form-group {
     margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+input,
+select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+button {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2563eb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.leaflet-map {
+    width: 100%;
+    height: 400px;
+    margin-top: 1rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 
 .icon-preview {

@@ -294,6 +294,7 @@ exports.addLocation = onCall(async (request) => {
 
   const locationId = (data?.locationId || "").trim();
   const displayName = (data?.displayName || "").trim();
+  const description = (data?.description || "").trim();
   const latitude = Number(data?.latitude);
   const longitude = Number(data?.longitude);
   const areaId = (data?.areaId || "").trim();
@@ -306,7 +307,9 @@ exports.addLocation = onCall(async (request) => {
   if (!displayName) {
     throw new HttpsError("invalid-argument", "displayName is required.");
   }
-
+  if (!description) {
+    throw new HttpsError("invalid-argument", "description is required.");
+  }
   if (data?.latitude === "" || data?.latitude === undefined || Number.isNaN(latitude)) {
     throw new HttpsError("invalid-argument", "latitude is required.");
   }
@@ -327,6 +330,7 @@ exports.addLocation = onCall(async (request) => {
     .set({
       id: locationId,
       displayName,
+      description,
       coords: [latitude, longitude],
       discoveryField: locationId + "Discovered",
       areaId: areaId,

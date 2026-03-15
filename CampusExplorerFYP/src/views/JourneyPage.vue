@@ -89,64 +89,76 @@ import { useAuthStore } from "@/stores/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/Firebase";
 import { useProgressStore } from "@/stores/progress";
+import { useCampusLocs } from "@/stores/campusLocs";
 
 const progressStore = useProgressStore();
+const campusLocsStore = useCampusLocs();
 const auth = useAuthStore();
 const myScore = ref(0);
-
-const totalLocations = campusIcons.length + campusAreas.length;
 const discoveredLocations = ref(0);
-
-// Track which item is expanded (by its discoveryField)
 const expandedField = ref(null);
 
 function toggleDescription(loc) {
-    if (!loc.discovered) return; // only discovered items can expand
+    if (!loc.discovered) return;
     if (expandedField.value === loc.field) {
-        expandedField.value = null; // collapse if already open
+        expandedField.value = null;
     } else {
-        expandedField.value = loc.field; // expand this one
+        expandedField.value = loc.field;
     }
 }
 
-const areaGroups = ref(
-    campusAreas.map((area) => ({
+const allLocations = computed(() => [...campusIcons, ...campusLocsStore.locations]);
+
+const totalLocations = computed(() => allLocations.value.length + campusAreas.length);
+
+const areaGroups = ref([]);
+const standaloneIcons = ref([]);
+
+function buildAreaGroups() {
+    areaGroups.value = campusAreas.map((area) => ({
+        id: area.id,
         name: area.displayName,
         field: area.discoveryField,
         color: area.color ?? "#1e90ff",
         discovered: false,
         description: area.description ?? "",
-        children: campusIcons
+        children: allLocations.value
             .filter((loc) => loc.areaId === area.id)
             .map((loc) => ({
+                id: loc.id,
                 name: loc.displayName,
                 field: loc.discoveryField,
                 discovered: false,
                 description: loc.description ?? "",
             })),
-    })),
-);
+    }));
 
-const standaloneIcons = ref(
-    campusIcons
+    standaloneIcons.value = allLocations.value
         .filter((loc) => !loc.areaId)
         .map((loc) => ({
+            id: loc.id,
             name: loc.displayName,
             field: loc.discoveryField,
             discovered: false,
             description: loc.description ?? "",
-        })),
-);
+        }));
+}
 
 const progressPercent = computed(() => {
-    return Math.round((discoveredLocations.value / totalLocations) * 100);
+    if (totalLocations.value === 0) return 0;
+    return Math.round((discoveredLocations.value / totalLocations.value) * 100);
 });
+
 onMounted(async () => {
+    await campusLocsStore.fetchLocations();
+    buildAreaGroups();
+
     myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
 
     if (auth.user) {
         const userRef = doc(db, "users", auth.user.uid);
         const snap = await getDoc(userRef);
+
         if (snap.exists()) {
             const data = snap.data();
             let count = 0;
@@ -156,6 +168,7 @@ onMounted(async () => {
                     area.discovered = true;
                     count++;
                 }
+
                 area.children.forEach((child) => {
                     if (data[child.field]) {
                         child.discovered = true;

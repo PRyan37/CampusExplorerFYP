@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
 }
 
 .buttons.active {
-  background: rgb(255, 230, 0);
+  border-color: #3b82f6;
 }
 
 .auth-name-button {

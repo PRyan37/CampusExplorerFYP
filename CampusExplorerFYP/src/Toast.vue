@@ -21,13 +21,15 @@ watch(
 
 <style scoped>
 .toast-box {
-    position: absolute;
+    position: fixed;
     bottom: 30px;
     right: 30px;
     display: flex;
     align-items: flex-end;
     flex-direction: column;
     overflow: hidden;
+    z-index: 9999;
+    pointer-events: none;
 }
 
 .toast {
@@ -38,5 +40,6 @@ watch(
     margin: 10px 0;
     display: block !important;
     box-shadow: 0 0px 20px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
 }
 </style>
