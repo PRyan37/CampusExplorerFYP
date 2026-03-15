@@ -261,7 +261,9 @@ async function loadFirestoreMarkers() {
     await campusLocsStore.fetchLocations();
 
     campusLocsStore.locations.forEach((location) => {
-        if (markersById[location.id]);
+        if (markersById[location.id]) {
+            return;
+        }
         addMarker(location);
     });
 }
