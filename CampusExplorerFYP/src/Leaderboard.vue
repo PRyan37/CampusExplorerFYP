@@ -24,8 +24,6 @@ import { onMounted, ref } from "vue";
 import { useProgressStore } from "@/stores/progress";
 import { useAuthStore } from "./stores/auth";
 import { useFriendsStore } from "@/stores/friends";
-import { useFriendRequestsStore } from "@/stores/friendRequests";
-const friendRequestsStore = useFriendRequestsStore();
 const auth = useAuthStore();
 
 const progressStore = useProgressStore();
