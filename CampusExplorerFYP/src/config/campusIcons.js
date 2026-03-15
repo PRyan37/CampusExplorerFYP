@@ -1,5 +1,3 @@
-import { icon } from "leaflet";
-
 export const campusIcons = [
   {
     id: "computerScienceBuilding",
