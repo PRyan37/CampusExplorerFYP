@@ -310,7 +310,9 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
-  [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
+  const allLocations = [...campusIcons, ...campusLocsStore.locations];
+
+  allLocations.forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
     setMarkerIcon(loc.id, unknownIcon);
 
@@ -353,7 +355,7 @@ async function undiscoverAll() {
       const userRef = doc(db, "users", auth.user.uid);
       const reset = {};
       //set all location and area discovery fields to false and remove timestamps
-      campusIcons.forEach((loc) => {
+      allLocations.forEach((loc) => {
         reset[loc.discoveryField] = false;
         reset[loc.discoveryField + "At"] = null;
       });
