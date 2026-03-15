@@ -1,26 +1,21 @@
 <template>
-  <div class="container-fluid py-3">
-    <div class="row">
-      <div class="col-12 col-md-3 mb-3">
-        <div class="d-grid gap-2">
-          <button class="btn btn-outline-danger btn-sm" @click="undiscoverAll">
-            Reset Discoveries
-          </button>
-          <button class="btn btn-primary btn-sm" @click="getCurrentLocation">
-            Center On My Location
-          </button>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-9">
-        <div id="map" ref="mapEl" class="leaflet-map"></div>
-      </div>
+  <div class="leaflet-map-container">
+    <div class="map-buttons">
+      <DevOnly>
+        <button class="btn reset-discoveries-button btn-sm" @click="undiscoverAll">
+          Reset Discoveries
+        </button>
+      </DevOnly>
+      <button class="btn btn-sm center-on-my-location" @click="getCurrentLocation">
+        Center On My Location
+      </button>
     </div>
+    <div id="map" ref="mapEl" class="leaflet-map"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -41,18 +36,23 @@ import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
-import { db } from "./firebase/Firebase";
+import { db, app } from "./firebase/Firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
 import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "./firebase/Firebase";
+import { useCampusLocs } from "./stores/campusLocs";
+import DevOnly from "./DevOnly.vue";
+import { useRoute } from "vue-router";
 
 const auth = useAuthStore();
 const toast = useToastStore();
+const campusLocsStore = useCampusLocs();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
+const route = useRoute();
+const developerMode = computed(() => route.query.dev === "true");
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -85,28 +85,20 @@ const defaultIcon = L.Icon.extend({
 
 const unknownIcon = new defaultIcon({ iconUrl: questionMarkImg });
 
-const discoveredIcons = {
-  sult: new defaultIcon({ iconUrl: beerImg }),
-  computerScienceBuilding: new defaultIcon({ iconUrl: computerImg }),
-  anBhiaLann: new defaultIcon({ iconUrl: foodImg }),
-  engineeringBuilding: new defaultIcon({ iconUrl: engineeringImg }),
-  baileyAllen: new defaultIcon({ iconUrl: bookImg }),
-  kingfisher: new defaultIcon({ iconUrl: gymImg }),
-  gaaPitches: new defaultIcon({ iconUrl: sportsImg }),
-  theHub: new defaultIcon({ iconUrl: socialImg }),
-  healthCentre: new defaultIcon({ iconUrl: healthImg }),
-  humanBiologyBuilding: new defaultIcon({ iconUrl: bookImg }),
-  arasUiChathail: new defaultIcon({ iconUrl: bookImg }),
-  mailServicesCenter: new defaultIcon({ iconUrl: bookImg }),
-  dramaCenter: new defaultIcon({ iconUrl: dramaImg }),
-  orbsenBuilding: new defaultIcon({ iconUrl: bookImg }),
-  boi: new defaultIcon({ iconUrl: bankImg }),
-  smokeys: new defaultIcon({ iconUrl: foodImg }),
-  studentUnionShop: new defaultIcon({ iconUrl: shopImg }),
-  jamesHardimanLibrary: new defaultIcon({ iconUrl: bookImg }),
-  artsMillenniumBuilding: new defaultIcon({ iconUrl: bookImg }),
-  corribVillage: new defaultIcon({ iconUrl: accomImg }),
-  dunlinVillage: new defaultIcon({ iconUrl: accomImg }),
+const iconOptions = {
+  beer: new defaultIcon({ iconUrl: beerImg }),
+  computer: new defaultIcon({ iconUrl: computerImg }),
+  food: new defaultIcon({ iconUrl: foodImg }),
+  engineering: new defaultIcon({ iconUrl: engineeringImg }),
+  book: new defaultIcon({ iconUrl: bookImg }),
+  gym: new defaultIcon({ iconUrl: gymImg }),
+  sports: new defaultIcon({ iconUrl: sportsImg }),
+  social: new defaultIcon({ iconUrl: socialImg }),
+  health: new defaultIcon({ iconUrl: healthImg }),
+  drama: new defaultIcon({ iconUrl: dramaImg }),
+  bank: new defaultIcon({ iconUrl: bankImg }),
+  shop: new defaultIcon({ iconUrl: shopImg }),
+  accom: new defaultIcon({ iconUrl: accomImg }),
 };
 
 const discoveryFlags = {
@@ -190,7 +182,7 @@ const markersById = {};
 const areaShapesById = {};
 //add markers
 function addMarker(location, icon = unknownIcon) {
-  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.name);
+  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
 
   markersById[location.id] = marker;
 
@@ -206,7 +198,9 @@ function addMarker(location, icon = unknownIcon) {
 async function initMapInstance() {
   await nextTick();
   if (map) return;
-
+  console.log("About to fetch campus locations");
+  await campusLocsStore.fetchLocations();
+  console.log("After fetch", campusLocsStore.locations);
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -226,6 +220,15 @@ async function initMapInstance() {
   });
 
   campusIcons.forEach((location) => addMarker(location));
+  campusLocsStore.locations.forEach((location) => {
+    addMarker(location);
+    console.log(
+      "Adding marker for location:",
+      location.displayName,
+      location.areaId,
+      discoveryFlags[location.areaId + "Discovered"],
+    );
+  });
 
   setTimeout(() => {
     map.invalidateSize();
@@ -268,14 +271,14 @@ async function setUpMap() {
           }
         });
 
-        campusIcons.forEach((loc) => {
+        [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
           const flag = !!data[loc.discoveryField];
           discoveryFlags[loc.discoveryField] = flag;
           const marker = markersById[loc.id];
           if (!marker) return;
 
           if (flag) {
-            setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+            setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
             marker.setOpacity(1);
           } else if (loc.areaId) {
             const areaField = loc.areaId + "Discovered";
@@ -293,7 +296,9 @@ async function setUpMap() {
 
   clickHandler = (e) => {
     console.log("Map click:", e.latlng);
-    success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
+    if (developerMode.value) {
+      success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
+    }
   };
   map.on("click", clickHandler);
 
@@ -305,7 +310,9 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
-  campusIcons.forEach((loc) => {
+  const allLocations = [...campusIcons, ...campusLocsStore.locations];
+
+  allLocations.forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
     setMarkerIcon(loc.id, unknownIcon);
 
@@ -348,7 +355,7 @@ async function undiscoverAll() {
       const userRef = doc(db, "users", auth.user.uid);
       const reset = {};
       //set all location and area discovery fields to false and remove timestamps
-      campusIcons.forEach((loc) => {
+      allLocations.forEach((loc) => {
         reset[loc.discoveryField] = false;
         reset[loc.discoveryField + "At"] = null;
       });
@@ -408,7 +415,7 @@ async function success(position) {
       });
 
       // reveal any markers that belong to this area
-      campusIcons.forEach((loc) => {
+      [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
         if (loc.areaId === area.id) {
           const marker = markersById[loc.id];
           if (marker && !discoveryFlags[loc.discoveryField]) {
@@ -423,7 +430,7 @@ async function success(position) {
   }
 
   // 2) Individual locations
-  for (const loc of campusIcons) {
+  for (const loc of [...campusIcons, ...campusLocsStore.locations]) {
     const marker = markersById[loc.id];
     if (!marker) continue;
 
@@ -439,7 +446,7 @@ async function success(position) {
 
     // discover this location
     discoveryFlags[loc.discoveryField] = true;
-    setMarkerIcon(loc.id, discoveredIcons[loc.iconKey]);
+    setMarkerIcon(loc.id, iconOptions[loc.iconKey]);
     marker.setOpacity(1);
 
     await setDiscoveredOnUser({ discoveryField: loc.discoveryField, displayName: loc.displayName });
@@ -469,9 +476,42 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-:deep(#map.leaflet-container) {
-  height: 60vh;
-  min-height: 400px;
+.leaflet-map-container {
+  position: relative;
   width: 100%;
+  height: 100%;
+}
+
+.reset-discoveries-button {
+  background: white !important;
+  border: 1px solid #79153d !important;
+  color: #79153d !important;
+}
+
+.map-buttons {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.center-on-my-location {
+  background-color: #79153d !important;
+  border-color: #79153d !important;
+  color: #ffffff !important;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+:deep(#map.leaflet-container) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 </style>

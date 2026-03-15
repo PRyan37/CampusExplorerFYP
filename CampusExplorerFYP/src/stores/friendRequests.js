@@ -58,7 +58,6 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
             snapshot.docChanges().forEach((change) => {
               console.log("[friendRequests] change", change.type, change.doc.id, change.doc.data());
               if (change.type === "added") {
-                // debug action on added
                 console.log(
                   "[friendRequests] NEW incoming request from:",
                   change.doc.data().fromEmail,

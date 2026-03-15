@@ -1,105 +1,6 @@
-<script setup>
-import { ref, computed, onMounted } from "vue";
-import TopBar from "@/TopBar.vue";
-import { campusIcons } from "@/config/campusIcons";
-import { campusAreas } from "@/config/campusAreas";
-import { useAuthStore } from "@/stores/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/firebase/Firebase";
-import { useProgressStore } from "@/stores/progress";
-
-const progressStore = useProgressStore();
-const auth = useAuthStore();
-const myScore = ref(0);
-
-const totalLocations = campusIcons.length + campusAreas.length;
-const discoveredLocations = ref(0);
-
-// Track which item is expanded (by its discoveryField)
-const expandedField = ref(null);
-
-function toggleDescription(loc) {
-    if (!loc.discovered) return; // only discovered items can expand
-    if (expandedField.value === loc.field) {
-        expandedField.value = null; // collapse if already open
-    } else {
-        expandedField.value = loc.field; // expand this one
-    }
-}
-
-const areaGroups = ref(
-    campusAreas.map((area) => ({
-        name: area.displayName,
-        field: area.discoveryField,
-        color: area.color ?? "#1e90ff",
-        discovered: false,
-        description: area.description ?? "",
-        children: campusIcons
-            .filter((loc) => loc.areaId === area.id)
-            .map((loc) => ({
-                name: loc.displayName,
-                field: loc.discoveryField,
-                discovered: false,
-                description: loc.description ?? "",
-            })),
-    })),
-);
-
-const standaloneIcons = ref(
-    campusIcons
-        .filter((loc) => !loc.areaId)
-        .map((loc) => ({
-            name: loc.displayName,
-            field: loc.discoveryField,
-            discovered: false,
-            description: loc.description ?? "",
-        })),
-);
-
-const progressPercent = computed(() => {
-    return Math.round((discoveredLocations.value / totalLocations) * 100);
-});
-onMounted(async () => {
-    myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
-
-    if (auth.user) {
-        const userRef = doc(db, "users", auth.user.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            let count = 0;
-
-            areaGroups.value.forEach((area) => {
-                if (data[area.field]) {
-                    area.discovered = true;
-                    count++;
-                }
-                area.children.forEach((child) => {
-                    if (data[child.field]) {
-                        child.discovered = true;
-                        count++;
-                    }
-                });
-            });
-
-            standaloneIcons.value.forEach((loc) => {
-                if (data[loc.field]) {
-                    loc.discovered = true;
-                    count++;
-                }
-            });
-
-            discoveredLocations.value = count;
-        }
-    }
-});
-</script>
-
 <template>
     <TopBar />
-
     <h1 class="title">Journey</h1>
-
     <div class="progress-section">
         <h2>Progress</h2>
         <p class="progress-text">{{ discoveredLocations }} / {{ totalLocations }} discovered</p>
@@ -179,6 +80,116 @@ onMounted(async () => {
     </div>
 </template>
 
+<script setup>
+import { ref, computed, onMounted } from "vue";
+import TopBar from "@/TopBar.vue";
+import { campusIcons } from "@/config/campusIcons";
+import { campusAreas } from "@/config/campusAreas";
+import { useAuthStore } from "@/stores/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/firebase/Firebase";
+import { useProgressStore } from "@/stores/progress";
+import { useCampusLocs } from "@/stores/campusLocs";
+
+const progressStore = useProgressStore();
+const campusLocsStore = useCampusLocs();
+const auth = useAuthStore();
+const myScore = ref(0);
+const discoveredLocations = ref(0);
+const expandedField = ref(null);
+
+function toggleDescription(loc) {
+    if (!loc.discovered) return;
+    if (expandedField.value === loc.field) {
+        expandedField.value = null;
+    } else {
+        expandedField.value = loc.field;
+    }
+}
+
+const allLocations = computed(() => [...campusIcons, ...campusLocsStore.locations]);
+
+const totalLocations = computed(() => allLocations.value.length + campusAreas.length);
+
+const areaGroups = ref([]);
+const standaloneIcons = ref([]);
+
+function buildAreaGroups() {
+    areaGroups.value = campusAreas.map((area) => ({
+        id: area.id,
+        name: area.displayName,
+        field: area.discoveryField,
+        color: area.color ?? "#1e90ff",
+        discovered: false,
+        description: area.description ?? "",
+        children: allLocations.value
+            .filter((loc) => loc.areaId === area.id)
+            .map((loc) => ({
+                id: loc.id,
+                name: loc.displayName,
+                field: loc.discoveryField,
+                discovered: false,
+                description: loc.description ?? "",
+            })),
+    }));
+
+    standaloneIcons.value = allLocations.value
+        .filter((loc) => !loc.areaId)
+        .map((loc) => ({
+            id: loc.id,
+            name: loc.displayName,
+            field: loc.discoveryField,
+            discovered: false,
+            description: loc.description ?? "",
+        }));
+}
+
+const progressPercent = computed(() => {
+    if (totalLocations.value === 0) return 0;
+    return Math.round((discoveredLocations.value / totalLocations.value) * 100);
+});
+
+onMounted(async () => {
+    await campusLocsStore.fetchLocations();
+    buildAreaGroups();
+
+    if (auth.user) {
+        myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
+
+        const userRef = doc(db, "users", auth.user.uid);
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+            const data = snap.data();
+            let count = 0;
+
+            areaGroups.value.forEach((area) => {
+                if (data[area.field]) {
+                    area.discovered = true;
+                    count++;
+                }
+
+                area.children.forEach((child) => {
+                    if (data[child.field]) {
+                        child.discovered = true;
+                        count++;
+                    }
+                });
+            });
+
+            standaloneIcons.value.forEach((loc) => {
+                if (data[loc.field]) {
+                    loc.discovered = true;
+                    count++;
+                }
+            });
+
+            discoveredLocations.value = count;
+        }
+    }
+});
+</script>
+
 <style scoped>
 .title {
     margin: 0;
@@ -188,6 +199,7 @@ onMounted(async () => {
 }
 
 .progress-section {
+    color: #79153d;
     margin: 40px auto 0;
     max-width: 500px;
     padding: 0 20px;
@@ -196,7 +208,6 @@ onMounted(async () => {
 .progress-text {
     font-size: 1.1rem;
     margin-bottom: 8px;
-    color: #333;
 }
 
 .progress-bar-bg {
@@ -232,6 +243,7 @@ onMounted(async () => {
 }
 
 .locations-section {
+    color: #79153d;
     margin: 30px auto 40px;
     max-width: 500px;
     padding: 0 20px;
@@ -315,7 +327,6 @@ onMounted(async () => {
 .description-text {
     margin: 0;
     font-size: 0.9rem;
-    color: #555;
     line-height: 1.4;
 }
 

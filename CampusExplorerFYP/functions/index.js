@@ -285,6 +285,63 @@ exports.respondToFriendRequest = onCall(async (request) => {
   }
 });
 
+exports.addLocation = onCall(async (request) => {
+  const { auth, data } = request;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Login required.");
+  }
+
+  const locationId = (data?.locationId || "").trim();
+  const displayName = (data?.displayName || "").trim();
+  const description = (data?.description || "").trim();
+  const latitude = Number(data?.latitude);
+  const longitude = Number(data?.longitude);
+  const areaId = (data?.areaId || "").trim();
+  const iconKey = (data?.iconKey || "").trim();
+
+  if (!locationId) {
+    throw new HttpsError("invalid-argument", "locationId is required.");
+  }
+
+  if (!displayName) {
+    throw new HttpsError("invalid-argument", "displayName is required.");
+  }
+  if (!description) {
+    throw new HttpsError("invalid-argument", "description is required.");
+  }
+  if (data?.latitude === "" || data?.latitude === undefined || Number.isNaN(latitude)) {
+    throw new HttpsError("invalid-argument", "latitude is required.");
+  }
+
+  if (data?.longitude === "" || data?.longitude === undefined || Number.isNaN(longitude)) {
+    throw new HttpsError("invalid-argument", "longitude is required.");
+  }
+  if (!areaId) {
+    throw new HttpsError("invalid-argument", "areaId is required.");
+  }
+  if (!iconKey) {
+    throw new HttpsError("invalid-argument", "iconKey is required.");
+  }
+
+  await db
+    .collection("campusLocations")
+    .doc(locationId)
+    .set({
+      id: locationId,
+      displayName,
+      description,
+      coords: [latitude, longitude],
+      discoveryField: locationId + "Discovered",
+      areaId: areaId,
+      iconKey: iconKey,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdByEmail: auth.token?.email || null,
+    });
+
+  return { ok: true, id: locationId };
+});
+
 exports.markDiscovered = onCall(async (request) => {
   const { auth, data } = request;
   if (!auth) throw new HttpsError("unauthenticated", "Login required.");

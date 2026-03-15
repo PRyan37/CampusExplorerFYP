@@ -1,25 +1,53 @@
 <template>
-    <div>
-        <h2>Your Friends</h2>
-        <button @click="loadFriends">Load Friends</button>
-        <ul>
-            <li v-for="friend in friendsStore.friendsList" :key="friend.id">{{ friend.friendEmail }}</li>
+    <div class="friends-card">
+        <p v-if="friendsStore.friendsList.length === 0" class="no-friends">
+            You have no friends added yet.
+        </p>
+
+        <ul v-else class="friends-list">
+            <li v-for="friend in friendsStore.friendsList" :key="friend.id" class="friend-item">
+                {{ friend.friendEmail }}
+            </li>
         </ul>
     </div>
 </template>
 
 <script setup>
-import { onMounted, nextTick } from 'vue'
-import { useFriendsStore } from './stores/friends'
-const friendsStore = useFriendsStore()
+import { onMounted } from "vue";
+import { useFriendsStore } from "./stores/friends";
 
+const friendsStore = useFriendsStore();
 
-function loadFriends() {
-    console.log('Loading friends...')
-    friendsStore.fetchFriends()
-}
-onMounted(async () => {
-    await nextTick()
-    loadFriends()
-})
+onMounted(() => {
+    friendsStore.fetchFriends();
+});
 </script>
+
+<style scoped>
+.friends-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.friends-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+}
+
+.friend-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.friend-item:hover {
+    background: #f7f7f7;
+}
+
+.no-friends {
+    color: #666;
+    margin-top: 10px;
+}
+</style>

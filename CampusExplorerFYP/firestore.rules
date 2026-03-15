@@ -65,5 +65,9 @@ service cloud.firestore {
       // so usually we don't allow client writes:
       allow write: if false;
     }
+
+    match /campusLocations/{locationId} {
+      allow read: if true;
+    }
   }
 }
