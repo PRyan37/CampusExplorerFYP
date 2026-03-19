@@ -3,10 +3,11 @@ import { db } from "../firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { campusAreas } from "@/config/campusAreas";
 import { campusIcons } from "@/config/campusIcons";
-
+import { getDocs, collection } from "firebase/firestore";
 export const useProgressStore = defineStore("progress", {
   state: () => ({
     score: 0,
+
     error: null,
     loading: false,
   }),
@@ -22,6 +23,10 @@ export const useProgressStore = defineStore("progress", {
         if (!snap.exists()) return;
 
         const data = snap.data();
+        const campusLocationsSnap = await getDocs(collection(db, "campusLocations"));
+        const firebaseLocations = campusLocationsSnap.docs.map((d) => d.data());
+
+        const allLocations = [...campusIcons, ...firebaseLocations];
 
         const pointsPerLocation = 10;
         const bonusPerCompletedArea = 30;
@@ -34,8 +39,8 @@ export const useProgressStore = defineStore("progress", {
           }
         });
 
-        campusIcons.forEach((icon) => {
-          if (data[icon.discoveryField]) {
+        allLocations.forEach((location) => {
+          if (location.discoveryField && data[location.discoveryField]) {
             discoveredCount++;
           }
         });

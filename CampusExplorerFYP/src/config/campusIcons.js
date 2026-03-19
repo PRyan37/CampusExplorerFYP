@@ -17,7 +17,8 @@ export const campusIcons = [
     discoveryField: "orbsenBuildingDiscovered",
     radius: 50,
     areaId: "concourse",
-    description: "Description.",
+    description:
+      "A modern teaching and research building primarily used for science and engineering disciplines. It contains lecture spaces, labs, and collaborative areas for students and staff.",
     iconKey: "book",
   },
   {
@@ -27,7 +28,8 @@ export const campusIcons = [
     discoveryField: "boiDiscovered",
     radius: 50,
     areaId: "concourse",
-    description: "Description.",
+    description:
+      "An on-campus banking branch providing essential financial services for students, including ATM access and account support, making it convenient for everyday banking needs.",
     iconKey: "bank",
   },
   {
@@ -37,7 +39,8 @@ export const campusIcons = [
     discoveryField: "smokeysDiscovered",
     radius: 50,
     areaId: "concourse",
-    description: "Description.",
+    description:
+      "A popular campus food spot known for quick, affordable meals and coffee. It’s a favourite among students looking for a fast bite between lectures.",
     iconKey: "food",
   },
   {
@@ -47,7 +50,8 @@ export const campusIcons = [
     discoveryField: "anBhiaLannDiscovered",
     radius: 50,
     areaId: "centralCampus",
-    description: "Description.",
+    description:
+      "The main university cafeteria offering a wide variety of hot meals, snacks, and drinks. It’s a central place for students to eat, relax, and meet friends.",
     iconKey: "food",
   },
   {
@@ -57,7 +61,8 @@ export const campusIcons = [
     discoveryField: "studentUnionShopDiscovered",
     radius: 50,
     areaId: "centralCampus",
-    description: "Description.",
+    description:
+      "A convenient on-campus shop where students can buy snacks, drinks, stationery, and university merchandise. It’s commonly used for quick purchases during the day.",
     iconKey: "shop",
   },
   {
@@ -67,7 +72,8 @@ export const campusIcons = [
     discoveryField: "jamesHardimanLibraryDiscovered",
     radius: 50,
     areaId: "centralCampus",
-    description: "Description.",
+    description:
+      "The university’s main library, providing extensive study spaces, books, digital resources, and group work areas. It’s one of the most important academic facilities on campus.",
     iconKey: "book",
   },
   {
@@ -77,7 +83,8 @@ export const campusIcons = [
     discoveryField: "artsMillenniumBuildingDiscovered",
     radius: 50,
     areaId: "centralCampus",
-    description: "Description.",
+    description:
+      "A major teaching building for arts and humanities students, featuring lecture halls, seminar rooms, and offices for academic staff.",
     iconKey: "book",
   },
   {
@@ -87,7 +94,8 @@ export const campusIcons = [
     discoveryField: "engineeringBuildingDiscovered",
     radius: 50,
     areaId: "northCampus",
-    description: "Description.",
+    description:
+      "A state-of-the-art facility housing engineering disciplines, with specialised labs, workshops, and lecture theatres supporting practical and theoretical learning.",
     iconKey: "engineering",
   },
   {
@@ -97,7 +105,8 @@ export const campusIcons = [
     discoveryField: "sultDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "A lively student bar located on campus, popular for social events, live music, and a relaxed atmosphere for students to unwind.",
     iconKey: "beer",
   },
   {
@@ -107,7 +116,8 @@ export const campusIcons = [
     discoveryField: "baileyAllenDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "The largest lecture theatre on campus, used for major classes, exams, and university events due to its large seating capacity.",
     iconKey: "book",
   },
   {
@@ -117,7 +127,8 @@ export const campusIcons = [
     discoveryField: "theHubDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "A student-focused social and study space designed for collaboration, group work, and informal learning.",
     iconKey: "social",
   },
   {
@@ -127,7 +138,8 @@ export const campusIcons = [
     discoveryField: "healthCentreDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "Provides medical services for students, including GP appointments, mental health support, and general healthcare.",
     iconKey: "health",
   },
   {
@@ -137,7 +149,8 @@ export const campusIcons = [
     discoveryField: "humanBiologyBuildingDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "A teaching and research facility focused on biological and health sciences, including labs and lecture rooms.",
     iconKey: "book",
   },
   {
@@ -147,7 +160,8 @@ export const campusIcons = [
     discoveryField: "arasUiChathailDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "An administrative and teaching building that hosts various academic departments and university services.",
     iconKey: "book",
   },
   {
@@ -157,7 +171,8 @@ export const campusIcons = [
     discoveryField: "mailServicesCenterDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "Handles university postal services, including internal mail and deliveries for staff and students.",
     iconKey: "book",
   },
   {
@@ -167,7 +182,8 @@ export const campusIcons = [
     discoveryField: "dramaCenterDiscovered",
     radius: 50,
     areaId: "southBuildings",
-    description: "Description.",
+    description:
+      "A creative space dedicated to drama and performance studies, including rehearsal rooms and small performance areas.",
     iconKey: "drama",
   },
   {
@@ -177,7 +193,8 @@ export const campusIcons = [
     discoveryField: "kingfisherDiscovered",
     radius: 50,
     areaId: "northCampus",
-    description: "Description.",
+    description:
+      "A fully equipped fitness centre offering a gym, swimming pool, and fitness classes for students and staff.",
     iconKey: "gym",
   },
   {
@@ -187,7 +204,8 @@ export const campusIcons = [
     discoveryField: "gaaPitchesDiscovered",
     radius: 50,
     areaId: "dangan",
-    description: "Description.",
+    description:
+      "Outdoor sports pitches used for Gaelic games training and matches, forming part of the university’s sports facilities.",
     iconKey: "sports",
   },
   {
@@ -197,7 +215,8 @@ export const campusIcons = [
     discoveryField: "corribVillageDiscovered",
     radius: 50,
     areaId: "studentAccom",
-    description: "Description.",
+    description:
+      "One of the main student accommodation complexes, offering apartment-style living close to the main campus.",
     iconKey: "accom",
   },
   {
@@ -207,7 +226,8 @@ export const campusIcons = [
     discoveryField: "dunlinVillageDiscovered",
     radius: 50,
     areaId: "studentAccom",
-    description: "Description.",
+    description:
+      "A newer student accommodation complex with modern facilities, designed to provide comfortable on-campus living.",
     iconKey: "accom",
   },
 ];

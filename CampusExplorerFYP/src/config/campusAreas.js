@@ -15,7 +15,8 @@ export const campusAreas = [
 
     discoveredColor: "#008b2eff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "A large outdoor sports complex located along the River Corrib, featuring pitches for GAA, rugby, and soccer. It’s a key space for university sports teams, training sessions, and recreational activities for students.",
   },
   {
     id: "southBuildings",
@@ -33,7 +34,8 @@ export const campusAreas = [
 
     discoveredColor: "#da7400ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "One of the oldest parts of the campus, home to lecture theatres, administrative offices, and student services. It’s a busy academic hub where many arts, science, and general modules take place.",
   },
   {
     id: "concourse",
@@ -51,7 +53,8 @@ export const campusAreas = [
 
     discoveredColor: "#a00000ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "The central social and academic walkway of the university, connecting key buildings, cafés, and student facilities. It’s a popular meeting point and one of the busiest areas on campus between lectures.",
   },
   {
     id: "centralCampus",
@@ -69,7 +72,8 @@ export const campusAreas = [
 
     discoveredColor: "#0b00a0ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "A modern extension of the university focused on STEM disciplines, including engineering and science buildings. It also includes sports facilities and is known for its newer infrastructure.",
   },
   {
     id: "northCampus",
@@ -87,7 +91,8 @@ export const campusAreas = [
 
     discoveredColor: "#a7aa00ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "A modern extension of the university focused on STEM disciplines, including engineering and science buildings. It also includes sports facilities and is known for its newer infrastructure.",
   },
   {
     id: "studentAccom",
@@ -105,7 +110,8 @@ export const campusAreas = [
 
     discoveredColor: "#aa0077ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "Residential areas for students, including Corrib Village and Dunlin Village. These spaces provide on-campus living with easy access to lectures, social areas, and university facilities.",
   },
   {
     id: "galwayCity",
@@ -123,6 +129,7 @@ export const campusAreas = [
 
     discoveredColor: "#ff0000ff",
     discoveredFillOpacity: 0,
-    description: "Description.",
+    description:
+      "The nearby city centre offers shops, restaurants, nightlife, and cultural attractions. It plays a big role in student life, providing a vibrant atmosphere just minutes from campus.",
   },
 ];

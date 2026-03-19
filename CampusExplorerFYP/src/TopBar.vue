@@ -69,7 +69,7 @@ onBeforeUnmount(() => {
     <div class="container-fluid d-flex align-items-center justify-content-between py-2 px-3">
       <div class="profile-menu">
         <button class="auth-name-button" @click.stop="toggleMenu">
-          <h2 class="auth-name mb-0">{{ auth.displayName }}</h2>
+          <span class="auth-name-text mb-0">{{ auth.displayName }}</span>
         </button>
 
         <div v-if="menuOpen" class="profile-dropdown">
@@ -129,7 +129,19 @@ onBeforeUnmount(() => {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  width: 100px;
+  box-sizing: border-box;
+}
+
+.auth-name-text {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
 }
 
 .buttons {
@@ -149,13 +161,6 @@ onBeforeUnmount(() => {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-}
-
-@media (max-width: 480px) {
-  .auth-name {
-    font-size: 0.8rem;
-    max-width: 45vw;
-  }
 }
 
 .profile-menu {
@@ -186,12 +191,5 @@ onBeforeUnmount(() => {
 
 .dropdown-item-button:hover {
   background: #f3f4f6;
-}
-
-@media (max-width: 480px) {
-  .auth-name {
-    font-size: 0.8rem;
-    max-width: 45vw;
-  }
 }
 </style>

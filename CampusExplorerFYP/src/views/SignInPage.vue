@@ -1,101 +1,195 @@
-<!-- filepath: c:\Users\ryanp\Git\CampusExplorer\CampusExplorerFYP\src\SignIn.vue -->
 <template>
-  <button @click="goToIntroduction">
-    What is Campus Explorer?
-  </button>
-  <div class="signin">
-    <h1>{{ needsRegister ? 'Create Account' : 'Sign In' }}</h1>
+  <div class="page">
+    <!-- Top right button -->
+    <div class="top-bar">
+      <button class="intro-btn" @click="goToIntroduction">What is Campus Explorer?</button>
+    </div>
 
-    <form @submit.prevent="onSubmit">
-      <label for="email">Email</label>
-      <input id="email" type="email" v-model.trim="email" autocomplete="email" required />
+    <!-- Sign in card -->
+    <div class="signin">
+      <h1>{{ needsRegister ? "Create Account" : "Sign In" }}</h1>
 
-      <label for="password">Password</label>
-      <input id="password" type="password" v-model="password" autocomplete="current-password" required />
+      <form @submit.prevent="onSubmit">
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" v-model.trim="email" autocomplete="email" required />
+        </div>
 
-      <button type="submit" :disabled="auth.loading">
-        {{ needsRegister ? 'Sign Up' : 'Sign In' }}
-      </button>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" v-model="password" autocomplete="current-password" required />
+        </div>
 
-      <button type="button" class="link" @click="needsRegister = !needsRegister">
-        {{ needsRegister ? 'Have an account? Sign in' : 'No account? Create one' }}
-      </button>
+        <button class="primary" type="submit" :disabled="auth.loading">
+          {{ needsRegister ? "Sign Up" : "Sign In" }}
+        </button>
 
-      <p class="error" v-if="auth.error">{{ auth.error }}</p>
-    </form>
+        <button type="button" class="link" @click="needsRegister = !needsRegister">
+          {{ needsRegister ? "Have an account? Sign in" : "No account? Create one" }}
+        </button>
+
+        <p class="error" v-if="auth.error">{{ auth.error }}</p>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
-const email = ref('')
-const password = ref('')
-const needsRegister = ref(false)
+const email = ref("");
+const password = ref("");
+const needsRegister = ref(false);
 
-const router = useRouter()
-const route = useRoute()
-const auth = useAuthStore()
+const router = useRouter();
+const route = useRoute();
+const auth = useAuthStore();
 
 function goToIntroduction() {
-  router.push('/')
+  router.push("/");
 }
 
 async function onSubmit() {
-  if (!email.value || !password.value) return
+  if (!email.value || !password.value) return;
 
   try {
     if (needsRegister.value) {
       // create account in Firebase Auth
-      await auth.register(email.value, password.value)
+      await auth.register(email.value, password.value);
     } else {
-      await auth.login(email.value, password.value)
+      await auth.login(email.value, password.value);
     }
     // redirect back to original page or home
-    const redirect = route.query.redirect || '/home'
-    router.replace(redirect)
+    const redirect = route.query.redirect || "/home";
+    router.replace(redirect);
   } catch {
     // error message is already set in auth.error
   }
 }
 </script>
-
 <style scoped>
+.page {
+  min-height: 100vh;
+  overflow: hidden;
+  background: #f5f5f7;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+/* "What is Campus Explorer?" button */
+.intro-btn {
+  background: transparent;
+  border: 2px solid #79153d;
+  color: #79153d;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.intro-btn:hover {
+  background: #79153d;
+  color: white;
+}
+
+/* Card */
 .signin {
-  max-width: 360px;
-  margin: 4rem auto;
-  padding: 1.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  max-width: 380px;
+  width: 100%;
+  margin: auto;
+  padding: 25px 20px;
+  border-radius: 16px;
   background: #fff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
+/* Title */
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #79153d;
+}
+
+/* Form layout */
 form {
-  display: grid;
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
+/* Input group */
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+/* Inputs */
 input {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
 }
 
-button {
-  margin-top: 0.25rem;
-  padding: 0.55rem 0.8rem;
+input:focus {
+  border-color: #79153d;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(121, 21, 61, 0.15);
 }
 
+/* Primary button */
+.primary {
+  background: #79153d;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.primary:hover {
+  background: #5f1031;
+}
+
+/* Toggle link */
 button.link {
   background: transparent;
-  color: #2563eb;
+  border: none;
+  color: #79153d;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button.link:hover {
   text-decoration: underline;
 }
 
+/* Error */
 .error {
   color: #b91c1c;
-  font-size: 0.9rem;
+  font-size: 13px;
+  text-align: center;
 }
 </style>

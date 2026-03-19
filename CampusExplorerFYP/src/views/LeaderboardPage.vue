@@ -34,5 +34,8 @@ import CollapsibleBox from "../CollapsibleBox.vue";
     flex-direction: column;
     gap: 16px;
     padding: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
 }
 </style>
