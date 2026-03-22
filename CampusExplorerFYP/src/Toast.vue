@@ -23,11 +23,11 @@ watch(
 .toast-box {
     position: fixed;
     bottom: 30px;
-    right: 30px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     flex-direction: column;
-    overflow: hidden;
     z-index: 9999;
     pointer-events: none;
 }

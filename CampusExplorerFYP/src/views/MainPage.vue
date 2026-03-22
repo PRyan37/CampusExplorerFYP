@@ -15,10 +15,13 @@ import TopBar from "../TopBar.vue";
 
 <style scoped>
 .main-page {
-  height: 100vh;
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .map-page-content {

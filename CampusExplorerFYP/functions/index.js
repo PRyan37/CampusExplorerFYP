@@ -62,6 +62,7 @@ exports.createUserProfile = onCall(async (request) => {
     .set(
       {
         email: email || null,
+        emailLower: email || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -399,4 +400,53 @@ exports.markDiscovered = onCall(async (request) => {
   }
 
   return { ok: true, notified: friendIds.length };
+});
+
+exports.searchUsers = onCall(async (request) => {
+  const { auth, data } = request;
+
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Login required.");
+  }
+
+  const rawQuery = (data && data.query) || "";
+  const limit = Number(data && data.limit) || 10;
+
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) {
+    return { users: [] };
+  }
+
+  if (query.length < 2) {
+    throw new HttpsError("invalid-argument", "Search query must be at least 2 characters.");
+  }
+
+  if (limit < 1 || limit > 50) {
+    throw new HttpsError("invalid-argument", "Limit must be between 1 and 50.");
+  }
+
+  try {
+    // IMPORTANT: users docs should have emailLower set to email.toLowerCase()
+    const usersRef = db.collection("users");
+    const snap = await usersRef
+      .where("emailLower", ">=", query)
+      .where("emailLower", "<=", query + "\uf8ff")
+      .limit(limit)
+      .get();
+
+    const results = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      results.push({
+        uid: docSnap.id,
+        email: d.email || null,
+        displayName: d.displayName || d.name || null,
+      });
+    });
+
+    return { users: results };
+  } catch (e) {
+    console.error("[searchUsers] error:", e);
+    throw new HttpsError("internal", "Search failed.");
+  }
 });

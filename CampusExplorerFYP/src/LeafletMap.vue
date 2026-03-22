@@ -37,18 +37,22 @@ import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { db, app } from "./firebase/Firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
 import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
+import { useUserDataStore } from "./stores/userData";
+import { useProgressStore } from "./stores/progress";
 import DevOnly from "./DevOnly.vue";
 import { useRoute } from "vue-router";
 
 const auth = useAuthStore();
 const toast = useToastStore();
 const campusLocsStore = useCampusLocs();
+const progressStore = useProgressStore();
+const userDataStore = useUserDataStore();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
 const route = useRoute();
@@ -139,6 +143,8 @@ async function setDiscoveredOnUser({ discoveryField, displayName }) {
 
   try {
     await markDiscoveredCall({ discoveryField, displayName });
+    userDataStore.invalidateUser(auth.user.uid);
+    progressStore.invalidateUserScore(auth.user.uid);
   } catch (e) {
     console.error("[LeafletMap] Failed to update discovery flag", location, e);
   }
@@ -242,6 +248,45 @@ function setMarkerIcon(id, icon) {
   }
   marker.setIcon(icon);
 }
+function applyDiscoveryStateFromUser(data) {
+  if (!data) return;
+
+  // sync discovery state from Firestore to map
+  campusAreas.forEach((area) => {
+    const field = area.discoveryField;
+    const flag = !!data[field];
+    discoveryFlags[field] = flag;
+
+    if (flag) {
+      const shape = areaShapesById[area.id];
+      if (shape) {
+        shape.setStyle({
+          color: area.discoveredColor ?? area.color ?? "#1e90ff",
+          fillOpacity: area.discoveredFillOpacity ?? 0,
+        });
+      }
+    }
+  });
+
+  [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
+    const flag = !!data[loc.discoveryField];
+    discoveryFlags[loc.discoveryField] = flag;
+    const marker = markersById[loc.id];
+    if (!marker) return;
+
+    if (flag) {
+      setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
+      marker.setOpacity(1);
+    } else if (loc.areaId) {
+      const areaField = loc.areaId + "Discovered";
+      const areaDiscovered = !!data[areaField];
+      marker.setOpacity(areaDiscovered ? 1 : 0);
+    } else {
+      marker.setOpacity(1);
+    }
+  });
+}
+
 async function setUpMap() {
   await nextTick();
   if (!mapEl.value) return;
@@ -249,46 +294,8 @@ async function setUpMap() {
 
   if (auth.user) {
     try {
-      const userRef = doc(db, "users", auth.user.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-
-        // sync discovery state from Firestore to map
-        campusAreas.forEach((area) => {
-          const field = area.discoveryField;
-          const flag = !!data[field];
-          discoveryFlags[field] = flag;
-
-          if (flag) {
-            const shape = areaShapesById[area.id];
-            if (shape) {
-              shape.setStyle({
-                color: area.discoveredColor ?? area.color ?? "#1e90ff",
-                fillOpacity: area.discoveredFillOpacity ?? 0,
-              });
-            }
-          }
-        });
-
-        [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
-          const flag = !!data[loc.discoveryField];
-          discoveryFlags[loc.discoveryField] = flag;
-          const marker = markersById[loc.id];
-          if (!marker) return;
-
-          if (flag) {
-            setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
-            marker.setOpacity(1);
-          } else if (loc.areaId) {
-            const areaField = loc.areaId + "Discovered";
-            const areaDiscovered = !!data[areaField];
-            marker.setOpacity(areaDiscovered ? 1 : 0);
-          } else {
-            marker.setOpacity(1);
-          }
-        });
-      }
+      const data = await userDataStore.fetchUserData(auth.user.uid);
+      applyDiscoveryStateFromUser(data);
     } catch (e) {
       console.error("[LeafletMap] Failed to load discovery state", e);
     }

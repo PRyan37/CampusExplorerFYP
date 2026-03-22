@@ -33,7 +33,7 @@ const friendsStore = useFriendsStore();
 
 const leaderboard = ref([]);
 onMounted(async () => {
-    friendsStore.fetchFriends();
+    await friendsStore.fetchFriends();
 
     const leaderboardEntries = [];
 

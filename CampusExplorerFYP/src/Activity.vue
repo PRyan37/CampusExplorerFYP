@@ -1,15 +1,14 @@
-<!-- filepath: c:\Users\ryanp\Git\CampusExplorer\CampusExplorerFYP\src\Activity.vue -->
 <script setup>
 import { useAuthStore } from "./stores/auth";
 import { onMounted, computed, ref } from "vue";
 import { useFriendsStore } from "@/stores/friends";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "./firebase/Firebase";
 import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
+import { useUserDataStore } from "./stores/userData";
 
 const friendsStore = useFriendsStore();
 const auth = useAuthStore();
+const userDataStore = useUserDataStore();
 
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
@@ -57,11 +56,8 @@ const filteredDiscoveries = computed(() => {
 });
 
 async function buildActivityEntriesForUser(userId, email) {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) return [];
-
-    const userData = userDoc.data();
+    const userData = await userDataStore.fetchUserData(userId);
+    if (!userData) return [];
     const activityEntries = [];
 
     for (const [discoveryField, meta] of Object.entries(discoveryMetaByField)) {

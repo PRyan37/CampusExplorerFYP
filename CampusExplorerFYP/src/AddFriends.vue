@@ -1,65 +1,62 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useFriendsStore } from "./stores/friends";
 import { useFriendRequestsStore } from "./stores/friendRequests";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/firebase/Firebase";
+import { app } from "@/firebase/Firebase";
 import { useAuthStore } from "@/stores/auth";
+import { useToastStore } from "./stores/toast";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const friendsStore = useFriendsStore();
 const friendRequestsStore = useFriendRequestsStore();
 const authStore = useAuthStore();
+const toast = useToastStore();
+
+const functions = getFunctions(app);
+const searchUsersCall = httpsCallable(functions, "searchUsers");
 
 const email = ref("");
 const isSubmitting = ref(false);
 
-const users = ref([]);
+const searchResults = ref([]);
 const loadingUsers = ref(false);
 const usersError = ref("");
 
 const MIN_SEARCH_CHARS = 3;
 
-onMounted(async () => {
-  try {
-    loadingUsers.value = true;
-    usersError.value = "";
+async function runSearch() {
+  const q = email.value.trim();
+  usersError.value = "";
 
-    const snap = await getDocs(collection(db, "users"));
-    users.value = snap.docs
-      .map((d) => d.data())
-      .filter((u) => u?.email)
-      .map((u) => ({
-        uid: u.uid,
-        email: String(u.email).toLowerCase(),
-        displayName: u.displayName ?? u.name ?? "",
-      }))
-      .filter((u) => u.email !== (authStore.user?.email || "").toLowerCase());
+  if (q.length < MIN_SEARCH_CHARS) {
+    searchResults.value = [];
+    return;
+  }
+
+  loadingUsers.value = true;
+  try {
+    const res = await searchUsersCall({ query: q, limit: 8 });
+    const users = (res.data && res.data.users) || [];
+
+    // filter out self by email
+    const myEmail = (authStore.user?.email || "").toLowerCase();
+    searchResults.value = users.filter((u) => (u.email || "").toLowerCase() !== myEmail);
   } catch (e) {
-    console.error("[AddFriends] failed to load users:", e);
-    usersError.value = "Failed to load users.";
+    console.error("[AddFriends] searchUsers failed:", e);
+    usersError.value = "Failed to search users.";
+    toast.show("Failed to search users.", { type: "error", duration: 4000 });
   } finally {
     loadingUsers.value = false;
   }
-});
-
-const filteredUsers = computed(() => {
-  const q = email.value.trim().toLowerCase();
-
-  if (q.length < MIN_SEARCH_CHARS) return [];
-
-  return users.value
-    .filter(
-      (u) => u.email.includes(q) || (u.displayName && u.displayName.toLowerCase().includes(q)),
-    )
-    .slice(0, 8);
-});
+}
 
 const showSuggestions = computed(() => {
-  return email.value.trim().length >= MIN_SEARCH_CHARS && filteredUsers.value.length > 0;
+  return email.value.trim().length >= MIN_SEARCH_CHARS && searchResults.value.length > 0;
 });
-
 function chooseUser(u) {
-  email.value = u.email;
+  if (u.email) {
+    email.value = u.email;
+  }
 }
 
 async function onSubmit() {
@@ -83,17 +80,17 @@ async function onSubmit() {
 
       <div class="input-wrap">
         <input id="email" type="email" v-model.trim="email" autocomplete="email" required
-          :disabled="friendRequestsStore.loading || isSubmitting" />
+          :disabled="friendRequestsStore.loading || isSubmitting" @input="runSearch" />
 
-        <div v-if="loadingUsers" class="hint">Loading users…</div>
+        <div v-if="loadingUsers" class="hint">Searching users…</div>
         <div v-else-if="usersError" class="hint error">{{ usersError }}</div>
 
-        <div v-else-if="email.trim().length > 0 && email.trim().length < 3" class="hint">
-          Type {{ 3 - email.trim().length }} more character(s) to search…
+        <div v-else-if="email.trim().length > 0 && email.trim().length < MIN_SEARCH_CHARS" class="hint">
+          Type {{ MIN_SEARCH_CHARS - email.trim().length }} more character(s) to search…
         </div>
 
         <ul v-else class="suggestions" v-show="showSuggestions">
-          <li v-for="u in filteredUsers" :key="u.email" class="suggestion" @click="chooseUser(u)">
+          <li v-for="u in searchResults" :key="u.email || u.uid" class="suggestion" @click="chooseUser(u)">
             <span class="s-email">{{ u.email }}</span>
             <span v-if="u.displayName" class="s-name">({{ u.displayName }})</span>
           </li>
