@@ -39,7 +39,6 @@ import { useAuthStore } from "./stores/auth";
 import { db, app } from "./firebase/Firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { useToastStore } from "./stores/toast";
-import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
@@ -225,7 +224,6 @@ async function initMapInstance() {
     areaShapesById[area.id] = poly;
   });
 
-  campusIcons.forEach((location) => addMarker(location));
   campusLocsStore.locations.forEach((location) => {
     addMarker(location);
     console.log(
@@ -268,7 +266,7 @@ function applyDiscoveryStateFromUser(data) {
     }
   });
 
-  [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
+  campusLocsStore.locations.forEach((loc) => {
     const flag = !!data[loc.discoveryField];
     discoveryFlags[loc.discoveryField] = flag;
     const marker = markersById[loc.id];
@@ -317,7 +315,7 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
-  const allLocations = [...campusIcons, ...campusLocsStore.locations];
+  const allLocations = campusLocsStore.locations;
 
   allLocations.forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
@@ -422,7 +420,7 @@ async function success(position) {
       });
 
       // reveal any markers that belong to this area
-      [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
+      campusLocsStore.locations.forEach((loc) => {
         if (loc.areaId === area.id) {
           const marker = markersById[loc.id];
           if (marker && !discoveryFlags[loc.discoveryField]) {
@@ -437,7 +435,7 @@ async function success(position) {
   }
 
   // 2) Individual locations
-  for (const loc of [...campusIcons, ...campusLocsStore.locations]) {
+  for (const loc of campusLocsStore.locations) {
     const marker = markersById[loc.id];
     if (!marker) continue;
 
