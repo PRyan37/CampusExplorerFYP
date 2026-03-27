@@ -3,25 +3,45 @@ import { db } from "../firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { campusAreas } from "@/config/campusAreas";
 import { campusIcons } from "@/config/campusIcons";
+import { getDocs, collection } from "firebase/firestore";
+import { useUserDataStore } from "./userData";
+import { useCampusLocs } from "./campusLocs";
 
 export const useProgressStore = defineStore("progress", {
   state: () => ({
     score: 0,
+    cachedScores: {}, // userId -> score
     error: null,
     loading: false,
   }),
 
   actions: {
-    async calculateScoreForUser(userId) {
+    async calculateScoreForUser(userId, force = false) {
+      if (!userId) {
+        console.warn("[progress] No user ID provided, cannot calculate score.");
+        return 0;
+      }
+      if (this.cachedScores[userId] !== undefined && !force) {
+        console.log(
+          `[progress] Returning cached score for user ${userId}:`,
+          this.cachedScores[userId],
+        );
+        return this.cachedScores[userId];
+      }
       this.loading = true;
       this.error = null;
 
       try {
-        const userRef = doc(db, "users", userId);
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) return;
+        const userData = useUserDataStore();
+        const campusLocs = useCampusLocs();
+        const data = await userData.fetchUserData(userId);
+        await campusLocs.fetchLocations();
+        if (!data) {
+          this.cachedScores[userId] = 0;
+          return 0;
+        }
 
-        const data = snap.data();
+        const allLocations = [...campusIcons, ...campusLocs.locations];
 
         const pointsPerLocation = 10;
         const bonusPerCompletedArea = 30;
@@ -34,8 +54,8 @@ export const useProgressStore = defineStore("progress", {
           }
         });
 
-        campusIcons.forEach((icon) => {
-          if (data[icon.discoveryField]) {
+        allLocations.forEach((location) => {
+          if (location.discoveryField && data[location.discoveryField]) {
             discoveredCount++;
           }
         });
@@ -57,13 +77,18 @@ export const useProgressStore = defineStore("progress", {
         });
 
         score += completedAreas * bonusPerCompletedArea;
-
+        this.cachedScores[userId] = score;
         return score;
       } catch (e) {
         this.error = e.message;
         throw e;
       } finally {
         this.loading = false;
+      }
+    },
+    invalidateUserScore(userId) {
+      if (userId && this.cachedScores[userId] != null) {
+        delete this.cachedScores[userId];
       }
     },
   },

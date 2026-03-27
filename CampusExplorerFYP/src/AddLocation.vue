@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
 });
 async function loadFirestoreMarkers() {
     console.log("[AddLocation] Loading markers from Firestore...");
-    await campusLocsStore.fetchLocations();
+    await campusLocsStore.fetchLocations(true);
 
     campusLocsStore.locations.forEach((location) => {
         if (markersById[location.id]) {

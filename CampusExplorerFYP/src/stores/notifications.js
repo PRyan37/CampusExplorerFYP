@@ -4,6 +4,8 @@ import { db } from "@/firebase/Firebase";
 import { useAuthStore } from "./auth";
 import { useToastStore } from "./toast";
 import { useFriendsStore } from "./friends";
+import { useUserDataStore } from "./userData";
+import { useProgressStore } from "./progress";
 
 let unsub = null;
 
@@ -16,6 +18,9 @@ export const useNotificationsStore = defineStore("notifications", {
     start() {
       const auth = useAuthStore();
       const friendsStore = useFriendsStore();
+      const userDataStore = useUserDataStore();
+      const progressStore = useProgressStore();
+
       console.log("[notifications] start listener for user:", auth.user?.uid);
       if (!auth.user) return;
 
@@ -44,6 +49,15 @@ export const useNotificationsStore = defineStore("notifications", {
 
         console.log("[notifications] new notification:", newest);
 
+        if (newest.type === "FRIEND_DISCOVERY" && newest.fromUserId) {
+          console.log(
+            "[notifications] invalidating caches for friend discovery from",
+            newest.fromUserId,
+          );
+          userDataStore.invalidateUser(newest.fromUserId);
+          progressStore.invalidateUserScore(newest.fromUserId);
+        }
+
         const toast = useToastStore();
         let toastType = "discovery";
 
@@ -55,6 +69,7 @@ export const useNotificationsStore = defineStore("notifications", {
           toastType = "friendRequest";
         }
         if (newest.type === "FRIEND_REQUEST_ACCEPTED") {
+          console.log("[notifications] fetching friends after friend request accepted");
           friendsStore.fetchFriends();
         }
 

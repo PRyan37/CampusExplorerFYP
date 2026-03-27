@@ -36,21 +36,25 @@ import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
-import { db, app } from "./firebase/Firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { app } from "./firebase/Firebase";
 import { useToastStore } from "./stores/toast";
-import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
+import { useUserDataStore } from "./stores/userData";
+import { useProgressStore } from "./stores/progress";
 import DevOnly from "./DevOnly.vue";
 import { useRoute } from "vue-router";
+
 
 const auth = useAuthStore();
 const toast = useToastStore();
 const campusLocsStore = useCampusLocs();
+const progressStore = useProgressStore();
+const userDataStore = useUserDataStore();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
+const resetDiscoveriesCall = httpsCallable(functions, "resetDiscoveries");
 const route = useRoute();
 const developerMode = computed(() => route.query.dev === "true");
 
@@ -139,6 +143,8 @@ async function setDiscoveredOnUser({ discoveryField, displayName }) {
 
   try {
     await markDiscoveredCall({ discoveryField, displayName });
+    userDataStore.invalidateUser(auth.user.uid);
+    progressStore.invalidateUserScore(auth.user.uid);
   } catch (e) {
     console.error("[LeafletMap] Failed to update discovery flag", location, e);
   }
@@ -219,7 +225,6 @@ async function initMapInstance() {
     areaShapesById[area.id] = poly;
   });
 
-  campusIcons.forEach((location) => addMarker(location));
   campusLocsStore.locations.forEach((location) => {
     addMarker(location);
     console.log(
@@ -242,6 +247,45 @@ function setMarkerIcon(id, icon) {
   }
   marker.setIcon(icon);
 }
+function applyDiscoveryStateFromUser(data) {
+  if (!data) return;
+
+  // sync discovery state from Firestore to map
+  campusAreas.forEach((area) => {
+    const field = area.discoveryField;
+    const flag = !!data[field];
+    discoveryFlags[field] = flag;
+
+    if (flag) {
+      const shape = areaShapesById[area.id];
+      if (shape) {
+        shape.setStyle({
+          color: area.discoveredColor ?? area.color ?? "#1e90ff",
+          fillOpacity: area.discoveredFillOpacity ?? 0,
+        });
+      }
+    }
+  });
+
+  campusLocsStore.locations.forEach((loc) => {
+    const flag = !!data[loc.discoveryField];
+    discoveryFlags[loc.discoveryField] = flag;
+    const marker = markersById[loc.id];
+    if (!marker) return;
+
+    if (flag) {
+      setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
+      marker.setOpacity(1);
+    } else if (loc.areaId) {
+      const areaField = loc.areaId + "Discovered";
+      const areaDiscovered = !!data[areaField];
+      marker.setOpacity(areaDiscovered ? 1 : 0);
+    } else {
+      marker.setOpacity(1);
+    }
+  });
+}
+
 async function setUpMap() {
   await nextTick();
   if (!mapEl.value) return;
@@ -249,46 +293,8 @@ async function setUpMap() {
 
   if (auth.user) {
     try {
-      const userRef = doc(db, "users", auth.user.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-
-        // sync discovery state from Firestore to map
-        campusAreas.forEach((area) => {
-          const field = area.discoveryField;
-          const flag = !!data[field];
-          discoveryFlags[field] = flag;
-
-          if (flag) {
-            const shape = areaShapesById[area.id];
-            if (shape) {
-              shape.setStyle({
-                color: area.discoveredColor ?? area.color ?? "#1e90ff",
-                fillOpacity: area.discoveredFillOpacity ?? 0,
-              });
-            }
-          }
-        });
-
-        [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
-          const flag = !!data[loc.discoveryField];
-          discoveryFlags[loc.discoveryField] = flag;
-          const marker = markersById[loc.id];
-          if (!marker) return;
-
-          if (flag) {
-            setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
-            marker.setOpacity(1);
-          } else if (loc.areaId) {
-            const areaField = loc.areaId + "Discovered";
-            const areaDiscovered = !!data[areaField];
-            marker.setOpacity(areaDiscovered ? 1 : 0);
-          } else {
-            marker.setOpacity(1);
-          }
-        });
-      }
+      const data = await userDataStore.fetchUserData(auth.user.uid);
+      applyDiscoveryStateFromUser(data);
     } catch (e) {
       console.error("[LeafletMap] Failed to load discovery state", e);
     }
@@ -310,7 +316,7 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
-  const allLocations = [...campusIcons, ...campusLocsStore.locations];
+  const allLocations = campusLocsStore.locations;
 
   allLocations.forEach((loc) => {
     discoveryFlags[loc.discoveryField] = false;
@@ -352,20 +358,9 @@ async function undiscoverAll() {
   });
   if (auth.user) {
     try {
-      const userRef = doc(db, "users", auth.user.uid);
-      const reset = {};
-      //set all location and area discovery fields to false and remove timestamps
-      allLocations.forEach((loc) => {
-        reset[loc.discoveryField] = false;
-        reset[loc.discoveryField + "At"] = null;
-      });
-
-      campusAreas.forEach((area) => {
-        reset[area.discoveryField] = false;
-        reset[area.discoveryField + "At"] = null;
-      });
-
-      await updateDoc(userRef, reset);
+      await resetDiscoveriesCall();
+      userDataStore.invalidateUser(auth.user.uid);
+      progressStore.invalidateUserScore(auth.user.uid);
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
     }
@@ -415,7 +410,7 @@ async function success(position) {
       });
 
       // reveal any markers that belong to this area
-      [...campusIcons, ...campusLocsStore.locations].forEach((loc) => {
+      campusLocsStore.locations.forEach((loc) => {
         if (loc.areaId === area.id) {
           const marker = markersById[loc.id];
           if (marker && !discoveryFlags[loc.discoveryField]) {
@@ -430,7 +425,7 @@ async function success(position) {
   }
 
   // 2) Individual locations
-  for (const loc of [...campusIcons, ...campusLocsStore.locations]) {
+  for (const loc of campusLocsStore.locations) {
     const marker = markersById[loc.id];
     if (!marker) continue;
 

@@ -5,12 +5,17 @@ import { db } from "@/firebase/Firebase";
 export const useCampusLocs = defineStore("campusLocations", {
   state: () => ({
     locations: [],
+    loaded: false,
     loading: false,
     error: null,
   }),
 
   actions: {
-    async fetchLocations() {
+    async fetchLocations(force = false) {
+      if (this.loaded && !force) {
+        console.log("[campusLocs] Locations already loaded, skipping fetch.");
+        return;
+      }
       this.loading = true;
       this.error = null;
 
@@ -20,7 +25,8 @@ export const useCampusLocs = defineStore("campusLocations", {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log("[campusLocs]Campus locations fetched:", this.locations);
+        this.loaded = true;
+        console.log("[campusLocs] Campus locations fetched:", this.locations);
       } catch (e) {
         console.error("[campusLocs] fetchLocations failed:", e);
         this.error = e.message || String(e);

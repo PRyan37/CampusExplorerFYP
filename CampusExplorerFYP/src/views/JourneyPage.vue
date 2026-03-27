@@ -86,13 +86,13 @@ import TopBar from "@/TopBar.vue";
 import { campusIcons } from "@/config/campusIcons";
 import { campusAreas } from "@/config/campusAreas";
 import { useAuthStore } from "@/stores/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/firebase/Firebase";
+import { useUserDataStore } from "@/stores/userData";
 import { useProgressStore } from "@/stores/progress";
 import { useCampusLocs } from "@/stores/campusLocs";
 
 const progressStore = useProgressStore();
 const campusLocsStore = useCampusLocs();
+const userDataStore = useUserDataStore();
 const auth = useAuthStore();
 const myScore = ref(0);
 const discoveredLocations = ref(0);
@@ -156,21 +156,19 @@ onMounted(async () => {
     if (auth.user) {
         myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
 
-        const userRef = doc(db, "users", auth.user.uid);
-        const snap = await getDoc(userRef);
+        const userData = await userDataStore.fetchUserData(auth.user.uid);
 
-        if (snap.exists()) {
-            const data = snap.data();
+        if (userData) {
             let count = 0;
 
             areaGroups.value.forEach((area) => {
-                if (data[area.field]) {
+                if (userData[area.field]) {
                     area.discovered = true;
                     count++;
                 }
 
                 area.children.forEach((child) => {
-                    if (data[child.field]) {
+                    if (userData[child.field]) {
                         child.discovered = true;
                         count++;
                     }
@@ -178,7 +176,7 @@ onMounted(async () => {
             });
 
             standaloneIcons.value.forEach((loc) => {
-                if (data[loc.field]) {
+                if (userData[loc.field]) {
                     loc.discovered = true;
                     count++;
                 }

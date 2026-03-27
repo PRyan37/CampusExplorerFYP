@@ -34,31 +34,35 @@ function acceptRequest(requestId) {
     friendsStore.fetchFriends();
 }
 </script>
-
 <style scoped>
 .requests-card {
     background: white;
-    padding: 20px;
+    padding: 0;
     border-radius: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .request-list {
     list-style: none;
     padding: 0;
-    margin-top: 10px;
+    margin: 0;
 }
 
 .request-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
+    padding: 12px 0;
     border-bottom: 1px solid #eee;
 }
 
-.request-item:hover {
-    background: #f7f7f7;
+.request-item:last-child {
+    border-bottom: none;
+}
+
+.request-text {
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .buttons {
@@ -66,11 +70,16 @@ function acceptRequest(requestId) {
     gap: 8px;
 }
 
+.buttons button {
+    flex: 1;
+}
+
 button {
     border: none;
-    padding: 6px 12px;
+    padding: 10px 12px;
     border-radius: 6px;
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .accept {
@@ -92,6 +101,6 @@ button {
 
 .no-requests {
     color: #666;
-    margin-top: 10px;
+    margin: 0;
 }
 </style>

@@ -1,33 +1,39 @@
-<!-- filepath: c:\Users\ryanp\Git\CampusExplorer\CampusExplorerFYP\src\Activity.vue -->
 <script setup>
 import { useAuthStore } from "./stores/auth";
 import { onMounted, computed, ref } from "vue";
 import { useFriendsStore } from "@/stores/friends";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "./firebase/Firebase";
-import { campusIcons } from "./config/campusIcons";
 import { campusAreas } from "./config/campusAreas";
+import { useUserDataStore } from "./stores/userData";
+import { useCampusLocs } from "./stores/campusLocs";
 
 const friendsStore = useFriendsStore();
 const auth = useAuthStore();
+const userDataStore = useUserDataStore();
+const campusLocsStore = useCampusLocs();
 
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
 const selectedTimeRange = ref("ever");
 
-const discoveryMetaByField = [
-    ...campusIcons.map((loc) => ({
-        field: loc.discoveryField,
-        displayName: loc.displayName,
-    })),
-    ...campusAreas.map((area) => ({
-        field: area.discoveryField,
-        displayName: area.displayName,
-    })),
-].reduce((acc, item) => {
-    acc[item.field] = { displayName: item.displayName };
-    return acc;
-}, {});
+// Build metadata for both areas and locations from Firestore
+const discoveryMetaByField = computed(() => {
+    const items = [
+        ...campusLocsStore.locations.map((loc) => ({
+            field: loc.discoveryField,
+            displayName: loc.displayName,
+        })),
+        ...campusAreas.map((area) => ({
+            field: area.discoveryField,
+            displayName: area.displayName,
+        })),
+    ];
+
+    return items.reduce((acc, item) => {
+        if (!item.field) return acc;
+        acc[item.field] = { displayName: item.displayName };
+        return acc;
+    }, {});
+});
 
 const filteredDiscoveries = computed(() => {
     let filtered = recentDiscoveries.value;
@@ -56,15 +62,13 @@ const filteredDiscoveries = computed(() => {
     return filtered;
 });
 
-async function buildActivityEntriesForUser(userId, email) {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) return [];
-
-    const userData = userDoc.data();
+async function buildActivityEntriesForUser(userId, email, force = false) {
+    const userData = await userDataStore.fetchUserData(userId, force);
+    if (!userData) return [];
     const activityEntries = [];
 
-    for (const [discoveryField, meta] of Object.entries(discoveryMetaByField)) {
+    // Use the computed meta (areas + firestore locations)
+    for (const [discoveryField, meta] of Object.entries(discoveryMetaByField.value)) {
         const ts = userData[discoveryField + "At"];
         if (!ts) continue;
 
@@ -78,18 +82,29 @@ async function buildActivityEntriesForUser(userId, email) {
     return activityEntries;
 }
 
-onMounted(async () => {
-    await friendsStore.fetchFriends();
+async function loadActivity(force = false) {
+    await campusLocsStore.fetchLocations(); // ensure locations loaded
+    await friendsStore.fetchFriends(); // cached
 
     const activityEntries = [];
-    activityEntries.push(...(await buildActivityEntriesForUser(auth.user.uid, auth.user.email)));
+    activityEntries.push(
+        ...(await buildActivityEntriesForUser(auth.user.uid, auth.user.email, force)),
+    );
 
     for (const friend of friendsStore.friendsList) {
-        const friendEntries = await buildActivityEntriesForUser(friend.friendId, friend.friendEmail);
+        const friendEntries = await buildActivityEntriesForUser(
+            friend.friendId,
+            friend.friendEmail,
+            force,
+        );
         activityEntries.push(...friendEntries);
     }
 
     recentDiscoveries.value = activityEntries.sort((a, b) => b.time - a.time);
+}
+
+onMounted(async () => {
+    await loadActivity(true); // force fresh data on page load
 });
 </script>
 
