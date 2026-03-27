@@ -36,8 +36,7 @@ import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
-import { db, app } from "./firebase/Firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { app } from "./firebase/Firebase";
 import { useToastStore } from "./stores/toast";
 import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -47,6 +46,7 @@ import { useProgressStore } from "./stores/progress";
 import DevOnly from "./DevOnly.vue";
 import { useRoute } from "vue-router";
 
+
 const auth = useAuthStore();
 const toast = useToastStore();
 const campusLocsStore = useCampusLocs();
@@ -54,6 +54,7 @@ const progressStore = useProgressStore();
 const userDataStore = useUserDataStore();
 const functions = getFunctions(app);
 const markDiscoveredCall = httpsCallable(functions, "markDiscovered");
+const resetDiscoveriesCall = httpsCallable(functions, "resetDiscoveries");
 const route = useRoute();
 const developerMode = computed(() => route.query.dev === "true");
 
@@ -357,20 +358,9 @@ async function undiscoverAll() {
   });
   if (auth.user) {
     try {
-      const userRef = doc(db, "users", auth.user.uid);
-      const reset = {};
-      //set all location and area discovery fields to false and remove timestamps
-      allLocations.forEach((loc) => {
-        reset[loc.discoveryField] = false;
-        reset[loc.discoveryField + "At"] = null;
-      });
-
-      campusAreas.forEach((area) => {
-        reset[area.discoveryField] = false;
-        reset[area.discoveryField + "At"] = null;
-      });
-
-      await updateDoc(userRef, reset);
+      await resetDiscoveriesCall();
+      userDataStore.invalidateUser(auth.user.uid);
+      progressStore.invalidateUserScore(auth.user.uid);
     } catch (e) {
       console.error("[LeafletMap] Failed to reset discoveries", e);
     }

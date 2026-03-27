@@ -69,6 +69,7 @@ export const useNotificationsStore = defineStore("notifications", {
           toastType = "friendRequest";
         }
         if (newest.type === "FRIEND_REQUEST_ACCEPTED") {
+          console.log("[notifications] fetching friends after friend request accepted");
           friendsStore.fetchFriends();
         }
 

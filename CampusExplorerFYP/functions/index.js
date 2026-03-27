@@ -62,7 +62,6 @@ exports.createUserProfile = onCall(async (request) => {
     .set(
       {
         email: email || null,
-        emailLower: email || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -402,6 +401,39 @@ exports.markDiscovered = onCall(async (request) => {
   return { ok: true, notified: friendIds.length };
 });
 
+exports.resetDiscoveries = onCall(async (request) => {
+  const { auth } = request;
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const userId = auth.uid;
+  const userRef = db.collection("users").doc(userId);
+  const snap = await userRef.get();
+
+  if (!snap.exists) {
+    return { ok: true, changed: false };
+  }
+
+  const data = snap.data() || {};
+  const reset = {};
+
+  // Clear all discovery flags and timestamps generically
+  for (const key of Object.keys(data)) {
+    if (key.endsWith("Discovered")) {
+      reset[key] = false;
+    }
+    if (key.endsWith("DiscoveredAt")) {
+      reset[key] = null;
+    }
+  }
+
+  if (!Object.keys(reset).length) {
+    return { ok: true, changed: false };
+  }
+
+  await userRef.set(reset, { merge: true });
+  return { ok: true, changed: true, cleared: Object.keys(reset).length };
+});
+
 exports.searchUsers = onCall(async (request) => {
   const { auth, data } = request;
 
@@ -421,16 +453,16 @@ exports.searchUsers = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Search query must be at least 2 characters.");
   }
 
-  if (limit < 1 || limit > 50) {
-    throw new HttpsError("invalid-argument", "Limit must be between 1 and 50.");
+  if (limit < 1 || limit > 30) {
+    throw new HttpsError("invalid-argument", "Limit must be between 1 and 30.");
   }
 
   try {
-    // IMPORTANT: users docs should have emailLower set to email.toLowerCase()
+    // IMPORTANT: users docs should have email set to email.toLowerCase()
     const usersRef = db.collection("users");
     const snap = await usersRef
-      .where("emailLower", ">=", query)
-      .where("emailLower", "<=", query + "\uf8ff")
+      .where("email", ">=", query)
+      .where("email", "<=", query + "\uf8ff")
       .limit(limit)
       .get();
 
