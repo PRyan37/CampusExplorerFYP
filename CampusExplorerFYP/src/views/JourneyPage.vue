@@ -149,7 +149,7 @@ const progressPercent = computed(() => {
 });
 
 onMounted(async () => {
-    await campusLocsStore.fetchLocations();
+    await campusLocsStore.startListeningLocations();
     buildAreaGroups();
 
     if (auth.user) {

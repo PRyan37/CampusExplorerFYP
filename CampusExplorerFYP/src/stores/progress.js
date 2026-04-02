@@ -32,7 +32,7 @@ export const useProgressStore = defineStore("progress", {
         const userData = useUserDataStore();
         const campusLocs = useCampusLocs();
         const data = await userData.fetchUserData(userId);
-        await campusLocs.fetchLocations();
+  
         if (!data) {
           this.cachedScores[userId] = 0;
           return 0;
