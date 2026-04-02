@@ -83,7 +83,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import TopBar from "@/TopBar.vue";
-import { campusIcons } from "@/config/campusIcons";
 import { campusAreas } from "@/config/campusAreas";
 import { useAuthStore } from "@/stores/auth";
 import { useUserDataStore } from "@/stores/userData";
@@ -107,7 +106,7 @@ function toggleDescription(loc) {
     }
 }
 
-const allLocations = computed(() => [...campusIcons, ...campusLocsStore.locations]);
+const allLocations = computed(() => campusLocsStore.locations);
 
 const totalLocations = computed(() => allLocations.value.length + campusAreas.length);
 
@@ -154,9 +153,10 @@ onMounted(async () => {
     buildAreaGroups();
 
     if (auth.user) {
+        const userData = await userDataStore.fetchUserData(auth.user.uid);
         myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
 
-        const userData = await userDataStore.fetchUserData(auth.user.uid);
+
 
         if (userData) {
             let count = 0;

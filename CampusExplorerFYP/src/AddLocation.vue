@@ -85,7 +85,6 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "./firebase/Firebase";
 import { campusAreas } from "./config/campusAreas";
 import { useCampusLocs } from "./stores/campusLocs";
-import { campusIcons } from "./config/campusIcons";
 
 const mapEl = ref(null);
 const latitude = ref("");
@@ -302,7 +301,6 @@ async function initMapInstance() {
         }).addTo(map);
         areaShapesById[area.id] = poly;
     });
-    campusIcons.forEach((location) => addMarker(location));
     loadFirestoreMarkers();
 
     setTimeout(() => {

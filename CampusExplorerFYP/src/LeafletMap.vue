@@ -186,6 +186,7 @@ onMounted(async () => {
 });
 const markersById = {};
 const areaShapesById = {};
+
 //add markers
 function addMarker(location, icon = unknownIcon) {
   const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
@@ -207,6 +208,8 @@ async function initMapInstance() {
   console.log("About to fetch campus locations");
   await campusLocsStore.fetchLocations();
   console.log("After fetch", campusLocsStore.locations);
+
+
   map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -316,6 +319,7 @@ async function setUpMap() {
 }
 async function undiscoverAll() {
   // 1) reset all location flags and icons
+  console.log("[LeafletMap] Resetting discoveries");
   const allLocations = campusLocsStore.locations;
 
   allLocations.forEach((loc) => {
@@ -358,7 +362,9 @@ async function undiscoverAll() {
   });
   if (auth.user) {
     try {
-      await resetDiscoveriesCall();
+      console.log("[LeafletMap] Calling resetDiscoveries cloud function");
+      const res = await resetDiscoveriesCall();
+      console.log("[LeafletMap] resetDiscoveries result:", res.data);
       userDataStore.invalidateUser(auth.user.uid);
       progressStore.invalidateUserScore(auth.user.uid);
     } catch (e) {

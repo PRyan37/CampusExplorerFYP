@@ -29,16 +29,6 @@ setGlobalOptions({ maxInstances: 10 });
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
-// exports.helloWorld = onRequest((req, res) => {
-//   cors(req, res, () => {
-//     logger.info("Hello logs!", { structuredData: true });
-//     res.status(200).send("Hello from Firebase!");
-//   });
-// });
 const admin = require("firebase-admin");
 
 if (!admin.apps.length) admin.initializeApp();
@@ -400,7 +390,6 @@ exports.markDiscovered = onCall(async (request) => {
 
   return { ok: true, notified: friendIds.length };
 });
-
 exports.resetDiscoveries = onCall(async (request) => {
   const { auth } = request;
   if (!auth) throw new HttpsError("unauthenticated", "Login required.");
@@ -408,7 +397,6 @@ exports.resetDiscoveries = onCall(async (request) => {
   const userId = auth.uid;
   const userRef = db.collection("users").doc(userId);
   const snap = await userRef.get();
-
   if (!snap.exists) {
     return { ok: true, changed: false };
   }
@@ -416,7 +404,7 @@ exports.resetDiscoveries = onCall(async (request) => {
   const data = snap.data() || {};
   const reset = {};
 
-  // Clear all discovery flags and timestamps generically
+  // Clear all *Discovered and *DiscoveredAt fields
   for (const key of Object.keys(data)) {
     if (key.endsWith("Discovered")) {
       reset[key] = false;
