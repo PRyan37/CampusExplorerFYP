@@ -1,9 +1,5 @@
 import { defineStore } from "pinia";
-import { db } from "../firebase/Firebase";
-import { doc, getDoc } from "firebase/firestore";
 import { campusAreas } from "@/config/campusAreas";
-import { campusIcons } from "@/config/campusIcons";
-import { getDocs, collection } from "firebase/firestore";
 import { useUserDataStore } from "./userData";
 import { useCampusLocs } from "./campusLocs";
 
@@ -17,6 +13,7 @@ export const useProgressStore = defineStore("progress", {
 
   actions: {
     async calculateScoreForUser(userId, force = false) {
+      console.log(`[progress] Calculating score for user ${userId} (force: ${force})`);
       if (!userId) {
         console.warn("[progress] No user ID provided, cannot calculate score.");
         return 0;
@@ -41,7 +38,7 @@ export const useProgressStore = defineStore("progress", {
           return 0;
         }
 
-        const allLocations = [...campusIcons, ...campusLocs.locations];
+        const allLocations = campusLocs.locations;
 
         const pointsPerLocation = 10;
         const bonusPerCompletedArea = 30;
@@ -64,7 +61,7 @@ export const useProgressStore = defineStore("progress", {
 
         let completedAreas = 0;
         campusAreas.forEach((area) => {
-          const children = campusIcons.filter((loc) => loc.areaId === area.id);
+          const children = allLocations.filter((loc) => loc.areaId === area.id);
           if (children.length === 0) return;
 
           const allChildrenDiscovered = children.every((loc) => !!data[loc.discoveryField]);
@@ -73,6 +70,7 @@ export const useProgressStore = defineStore("progress", {
 
           if (areaDiscovered && allChildrenDiscovered) {
             completedAreas++;
+            console.log(`[progress] Area completed: ${area.name} (userId: ${userId})`);
           }
         });
 
