@@ -2,14 +2,15 @@
 import { useAuthStore } from "./stores/auth";
 import { onMounted, computed, ref } from "vue";
 import { useFriendsStore } from "@/stores/friends";
-import { campusAreas } from "./config/campusAreas";
 import { useUserDataStore } from "./stores/userData";
 import { useCampusLocs } from "./stores/campusLocs";
+import { useCampusAreasStore } from "./stores/campusAreas";
 
 const friendsStore = useFriendsStore();
 const auth = useAuthStore();
 const userDataStore = useUserDataStore();
 const campusLocsStore = useCampusLocs();
+const campusAreasStore = useCampusAreasStore();
 
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
@@ -21,7 +22,7 @@ const discoveryMetaByField = computed(() => {
             field: loc.discoveryField,
             displayName: loc.displayName,
         })),
-        ...campusAreas.map((area) => ({
+        ...campusAreasStore.areas.map((area) => ({
             field: area.discoveryField,
             displayName: area.displayName,
         })),
@@ -83,6 +84,7 @@ async function buildActivityEntriesForUser(userId, email, force = false) {
 
 async function loadActivity(force = false) {
     await campusLocsStore.startListeningLocations();
+    await campusAreasStore.startListeningAreas();
     await friendsStore.fetchFriends(); // cached
 
     const activityEntries = [];

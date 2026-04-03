@@ -38,9 +38,9 @@ import accomImg from "./assets/AccomIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { app } from "./firebase/Firebase";
 import { useToastStore } from "./stores/toast";
-import { campusAreas } from "./config/campusAreas";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useCampusLocs } from "./stores/campusLocs";
+import { useCampusAreasStore } from "./stores/campusAreas";
 import { useUserDataStore } from "./stores/userData";
 import { useProgressStore } from "./stores/progress";
 import DevOnly from "./DevOnly.vue";
@@ -50,6 +50,7 @@ import { useRoute } from "vue-router";
 const auth = useAuthStore();
 const toast = useToastStore();
 const campusLocsStore = useCampusLocs();
+const campusAreasStore = useCampusAreasStore();
 const progressStore = useProgressStore();
 const userDataStore = useUserDataStore();
 const functions = getFunctions(app);
@@ -207,6 +208,7 @@ async function initMapInstance() {
   if (map) return;
   console.log("About to fetch campus locations");
   await campusLocsStore.startListeningLocations();
+  await campusAreasStore.startListeningAreas();
   console.log("After fetch", campusLocsStore.locations);
 
 
@@ -218,7 +220,7 @@ async function initMapInstance() {
   }).addTo(map);
 
   // add all areas and icons
-  campusAreas.forEach((area) => {
+  campusAreasStore.areas.forEach((area) => {
     const poly = L.polygon(area.polygon, {
       color: area.color ?? "#1e90ff",
       fillColor: area.fillColor ?? area.color ?? "#1e90ff",
@@ -254,7 +256,7 @@ function applyDiscoveryStateFromUser(data) {
   if (!data) return;
 
   // sync discovery state from Firestore to map
-  campusAreas.forEach((area) => {
+  campusAreasStore.areas.forEach((area) => {
     const field = area.discoveryField;
     const flag = !!data[field];
     discoveryFlags[field] = flag;
@@ -338,7 +340,7 @@ async function undiscoverAll() {
     }
   });
 
-  campusAreas.forEach((area) => {
+  campusAreasStore.areas.forEach((area) => {
     discoveryFlags[area.discoveryField] = false;
 
     let shape = areaShapesById[area.id];
@@ -398,7 +400,7 @@ async function success(position) {
   const userLatLng = L.latLng(latitude, longitude);
 
   // 1) AREA DISCOVERY
-  for (const area of campusAreas) {
+  for (const area of campusAreasStore.areas) {
     const field = area.discoveryField;
     if (discoveryFlags[field]) continue;
 

@@ -83,14 +83,15 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import TopBar from "@/TopBar.vue";
-import { campusAreas } from "@/config/campusAreas";
 import { useAuthStore } from "@/stores/auth";
 import { useUserDataStore } from "@/stores/userData";
 import { useProgressStore } from "@/stores/progress";
 import { useCampusLocs } from "@/stores/campusLocs";
+import { useCampusAreasStore } from "@/stores/campusAreas";
 
 const progressStore = useProgressStore();
 const campusLocsStore = useCampusLocs();
+const campusAreasStore = useCampusAreasStore();
 const userDataStore = useUserDataStore();
 const auth = useAuthStore();
 const myScore = ref(0);
@@ -108,13 +109,13 @@ function toggleDescription(loc) {
 
 const allLocations = computed(() => campusLocsStore.locations);
 
-const totalLocations = computed(() => allLocations.value.length + campusAreas.length);
+const totalLocations = computed(() => allLocations.value.length + campusAreasStore.areas.length);
 
 const areaGroups = ref([]);
 const standaloneIcons = ref([]);
 
 function buildAreaGroups() {
-    areaGroups.value = campusAreas.map((area) => ({
+    areaGroups.value = campusAreasStore.areas.map((area) => ({
         id: area.id,
         name: area.displayName,
         field: area.discoveryField,
@@ -150,6 +151,7 @@ const progressPercent = computed(() => {
 
 onMounted(async () => {
     await campusLocsStore.startListeningLocations();
+    await campusAreasStore.startListeningAreas();
     buildAreaGroups();
 
     if (auth.user) {

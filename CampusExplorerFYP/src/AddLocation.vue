@@ -83,8 +83,8 @@ import iconUrl from "leaflet/dist/images/marker-icon.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "./firebase/Firebase";
-import { campusAreas } from "./config/campusAreas";
 import { useCampusLocs } from "./stores/campusLocs";
+import { useCampusAreasStore } from "./stores/campusAreas";
 
 const mapEl = ref(null);
 const latitude = ref("");
@@ -96,10 +96,11 @@ const areaId = ref("");
 const toast = useToastStore();
 const functions = getFunctions(app);
 const campusLocsStore = useCampusLocs();
+const campusAreasStore = useCampusAreasStore();
 const addLocation = httpsCallable(functions, "addLocation");
 
 const areaOptions = computed(() =>
-    campusAreas.map((area) => ({
+    campusAreasStore.areas.map((area) => ({
         value: area.id,
         label: `${area.id} - ${area.displayName}`,
     })),
@@ -179,7 +180,7 @@ function isPointInPolygon(point, polygon) {
 }
 
 function findAreaIdForLatLng(lat, lng) {
-    const match = campusAreas.find((area) => isPointInPolygon([lat, lng], area.polygon));
+    const match = campusAreasStore.areas.find((area) => isPointInPolygon([lat, lng], area.polygon));
     return match?.id ?? "";
 }
 function addMarker(location) {
@@ -268,6 +269,7 @@ async function loadFirestoreMarkers() {
 
 async function initMapInstance() {
     await nextTick();
+    await campusAreasStore.startListeningAreas();
 
     map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
@@ -291,7 +293,7 @@ async function initMapInstance() {
     });
 
     // add all areas and icons
-    campusAreas.forEach((area) => {
+    campusAreasStore.areas.forEach((area) => {
         const poly = L.polygon(area.polygon, {
             color: area.color ?? "#1e90ff",
             fillColor: area.fillColor ?? area.color ?? "#1e90ff",

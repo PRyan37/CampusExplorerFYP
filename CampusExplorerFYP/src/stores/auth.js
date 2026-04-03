@@ -11,6 +11,7 @@ import { useNotificationsStore } from "./notifications";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "@/firebase/Firebase";
 import { useCampusLocs } from "./campusLocs";
+import { useCampusAreasStore } from "./campusAreas";
 
 const functions = getFunctions(app);
 const createUserProfileCall = httpsCallable(functions, "createUserProfile");
@@ -40,15 +41,18 @@ export const useAuthStore = defineStore("auth", {
         const friendRequestsStore = useFriendRequestsStore();
         const notificationsStore = useNotificationsStore();
         const campusLocsStore = useCampusLocs();
+        const campusAreasStore = useCampusAreasStore();
 
         if (user) {
           friendRequestsStore.subscribeIncomingRequests();
           notificationsStore.start();
           campusLocsStore.startListeningLocations();
+          campusAreasStore.startListeningAreas();
         } else {
           friendRequestsStore.unsubscribeIncomingRequests();
           notificationsStore.stop();
           campusLocsStore.stopListeningLocations();
+          campusAreasStore.stopListeningAreas();
         }
       });
     },
@@ -95,12 +99,14 @@ export const useAuthStore = defineStore("auth", {
     async logout() {
       const notificationsStore = useNotificationsStore();
       const campusLocsStore = useCampusLocs();
+      const campusAreasStore = useCampusAreasStore();
       console.log("Logging out user:", this.user?.email);
       await signOut(auth);
       this.user = null;
       this.isAuthenticated = false;
       notificationsStore.stop();
       campusLocsStore.stopListeningLocations();
+      campusAreasStore.stopListeningAreas();
     },
   },
 });
