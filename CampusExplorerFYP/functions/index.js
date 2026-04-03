@@ -526,19 +526,3 @@ exports.cleanOldNotifications = onSchedule("every 24 hours", async () => {
 
   console.log("[cleanOldNotifications] Done.");
 });
-exports.deleteNotification = onCall(async (request) => {
-  const { auth, data } = request;
-  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
-
-  const notifId = data?.notifId;
-  if (!notifId) throw new HttpsError("invalid-argument", "notifId is required.");
-
-  await db
-    .collection("notifications")
-    .doc(auth.uid)
-    .collection("inbox")
-    .doc(notifId)
-    .delete();
-
-  return { ok: true };
-});
