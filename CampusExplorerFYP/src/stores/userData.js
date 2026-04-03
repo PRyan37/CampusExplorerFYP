@@ -14,8 +14,10 @@ export const useUserDataStore = defineStore("userData", {
 
       const entry = this.cache[userId];
       if (entry && entry.loaded && !force) {
+        console.log(`[userData] Cache hit for ${userId}`);
         return entry.data;
       }
+      console.log(`[userData] Firestore read for ${userId} (force: ${force})`);
 
       this.loading = true;
       this.error = null;

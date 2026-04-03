@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, computed, watch } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -206,7 +206,7 @@ async function initMapInstance() {
   await nextTick();
   if (map) return;
   console.log("About to fetch campus locations");
-  await campusLocsStore.fetchLocations();
+  await campusLocsStore.startListeningLocations();
   console.log("After fetch", campusLocsStore.locations);
 
 

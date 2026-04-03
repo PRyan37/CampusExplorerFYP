@@ -10,6 +10,8 @@
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+
 const cors = require("cors")({
   origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
 });
@@ -469,4 +471,23 @@ exports.searchUsers = onCall(async (request) => {
     console.error("[searchUsers] error:", e);
     throw new HttpsError("internal", "Search failed.");
   }
+});
+exports.cleanOldNotifications = onSchedule("every 24 hours", async () => {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 1); // delete notifications older than 1 day
+
+  const usersSnap = await db.collection("users").get();
+
+  for (const userDoc of usersSnap.docs) {
+    const inboxRef = db.collection("notifications").doc(userDoc.id).collection("inbox");
+    const oldNotifs = await inboxRef.where("createdAt", "<", cutoff).get();
+
+    if (oldNotifs.empty) continue;
+
+    const batch = db.batch();
+    oldNotifs.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  console.log("[cleanOldNotifications] Done.");
 });

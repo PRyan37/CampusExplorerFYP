@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/firebase/Firebase";
+
+let unsub = null;
 
 export const useCampusLocs = defineStore("campusLocations", {
   state: () => ({
@@ -11,28 +13,45 @@ export const useCampusLocs = defineStore("campusLocations", {
   }),
 
   actions: {
-    async fetchLocations(force = false) {
-      if (this.loaded && !force) {
-        console.log("[campusLocs] Locations already loaded, skipping fetch.");
-        return;
-      }
+     startListeningLocations() {
+  if (this.loaded) return Promise.resolve();
+
       this.loading = true;
       this.error = null;
 
-      try {
-        const snapshot = await getDocs(collection(db, "campusLocations"));
-        this.locations = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        this.loaded = true;
-        console.log("[campusLocs] Campus locations fetched:", this.locations);
-      } catch (e) {
-        console.error("[campusLocs] fetchLocations failed:", e);
-        this.error = e.message || String(e);
-      } finally {
-        this.loading = false;
-      }
+      return new Promise((resolve, reject) => {
+        let firstSnapshot = true;
+
+        unsub = onSnapshot(
+          collection(db, "campusLocations"),
+          (snapshot) => {
+            this.locations = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            this.loaded = true;
+            this.loading = false;
+            if (firstSnapshot) {
+              firstSnapshot = false;
+              resolve();
+            }
+          },
+          (e) => {
+            console.error("[campusLocs] onSnapshot failed:", e);
+            this.error = e.message || String(e);
+            this.loading = false;
+            if (firstSnapshot) {
+              firstSnapshot = false;
+              reject(e);
+            }
+          },
+        );
+      });
+    },
+     stopListeningLocations() {
+      unsub?.();
+      unsub = null;
+      this.loaded = false;
     },
   },
 });

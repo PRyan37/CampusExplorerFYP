@@ -14,7 +14,6 @@ const campusLocsStore = useCampusLocs();
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
 const selectedTimeRange = ref("ever");
-
 // Build metadata for both areas and locations from Firestore
 const discoveryMetaByField = computed(() => {
     const items = [
@@ -83,7 +82,7 @@ async function buildActivityEntriesForUser(userId, email, force = false) {
 }
 
 async function loadActivity(force = false) {
-    await campusLocsStore.fetchLocations(); // ensure locations loaded
+    await campusLocsStore.startListeningLocations();
     await friendsStore.fetchFriends(); // cached
 
     const activityEntries = [];
@@ -104,7 +103,7 @@ async function loadActivity(force = false) {
 }
 
 onMounted(async () => {
-    await loadActivity(true); // force fresh data on page load
+    await loadActivity(); // force fresh data on page load
 });
 </script>
 

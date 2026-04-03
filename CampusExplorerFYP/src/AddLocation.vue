@@ -203,7 +203,7 @@ async function onSubmit() {
         }
 
         isSubmitting.value = true;
-        await campusLocsStore.fetchLocations();
+        await campusLocsStore.startListeningLocations();
 
         const trimmedId = locationId.value.trim();
         const existing = campusLocsStore.locations.find((loc) => loc.id === trimmedId);
@@ -257,7 +257,6 @@ onBeforeUnmount(() => {
 });
 async function loadFirestoreMarkers() {
     console.log("[AddLocation] Loading markers from Firestore...");
-    await campusLocsStore.fetchLocations(true);
 
     campusLocsStore.locations.forEach((location) => {
         if (markersById[location.id]) {
