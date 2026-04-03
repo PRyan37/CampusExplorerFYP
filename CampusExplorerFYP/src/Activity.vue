@@ -103,7 +103,7 @@ async function loadActivity(force = false) {
 }
 
 onMounted(async () => {
-    await loadActivity(true); // force fresh data on page load
+    await loadActivity(); // force fresh data on page load
 });
 </script>
 

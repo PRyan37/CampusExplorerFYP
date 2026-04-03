@@ -205,7 +205,6 @@ async function onSubmit() {
         isSubmitting.value = true;
         await campusLocsStore.startListeningLocations();
 
-
         const trimmedId = locationId.value.trim();
         const existing = campusLocsStore.locations.find((loc) => loc.id === trimmedId);
         if (existing) {
