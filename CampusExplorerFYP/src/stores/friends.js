@@ -32,35 +32,6 @@ export const useFriendsStore = defineStore("friends", {
         console.log("Friends list fetched:", this.friendsList);
       }
     },
-    //      async addFriend(friendId,friendEmail) {
-    //         console.log('[friends.js] Adding friend with email:', friendEmail)
-    //     const auth = useAuthStore()
-    //     if (!auth.user) {
-    //         console.warn('[friends.js] No authenticated user in addFriend')
-    //         return
-    //     }
-
-    //     try {
-    //         console.log('[friends.js] Current user ID:', auth.user.uid)
-    //         console.log('[friends.js] Friend ID to add:', friendId)
-    //         const friendsRef = collection(db, 'friends')
-    //         await addDoc(friendsRef, {
-    //             userId: auth.user.uid,
-    //             userEmail: auth.user.email,
-    //             friendId,
-    //             friendEmail,
-    //             createdAt: serverTimestamp()
-    //         })
-    //           await addDoc(friendsRef, {
-    //             userId: friendId,
-    //             userEmail: friendEmail,
-    //             friendId: auth.user.uid,
-    //             friendEmail: auth.user.email,
-    //             createdAt: serverTimestamp()
-    //         })
-    //     } catch (e) {
-    //         this.error = e.message
-    //     }
-    // }
+ 
   },
 });

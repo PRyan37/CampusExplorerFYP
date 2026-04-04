@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { db } from "@/firebase/Firebase";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { db,app } from "@/firebase/Firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useAuthStore } from "./auth";
 import { useToastStore } from "./toast";
 import { useFriendsStore } from "./friends";
@@ -8,6 +9,8 @@ import { useUserDataStore } from "./userData";
 import { useProgressStore } from "./progress";
 
 let unsub = null;
+const deleteNotificationCall = httpsCallable(getFunctions(app), "deleteNotification");
+let initialLoadDone = false;
 
 export const useNotificationsStore = defineStore("notifications", {
   state: () => ({
@@ -27,6 +30,7 @@ export const useNotificationsStore = defineStore("notifications", {
       const q = query(
         collection(db, "notifications", auth.user.uid, "inbox"),
         orderBy("createdAt", "desc"),
+        limit(20),
       );
 
       unsub?.();
@@ -39,6 +43,24 @@ export const useNotificationsStore = defineStore("notifications", {
 
         if (!newest) {
           console.log("[notifications] inbox empty");
+          return;
+        }
+          let toastType = "discovery";
+           const toast = useToastStore();
+        if (!initialLoadDone) {
+          console.log("[notifications] initial load, showing toast for most recent notification only");
+          initialLoadDone = true;
+          // process newest for cache invalidation
+          if (newest.type === "FRIEND_DISCOVERY" && newest.fromUserId) {
+            userDataStore.invalidateUser(newest.fromUserId);
+            progressStore.invalidateUserScore(newest.fromUserId);
+          }
+          if (newest.type === "FRIEND_REQUEST_ACCEPTED") {
+            friendsStore.fetchFriends();
+          }
+          toast.show(newest.message, { type: toastType, duration: 5000 });
+          // delete ALL silently — no cascade
+          this.inbox.forEach(n => deleteNotificationCall({ notifId: n.id }));
           return;
         }
 
@@ -58,8 +80,8 @@ export const useNotificationsStore = defineStore("notifications", {
           progressStore.invalidateUserScore(newest.fromUserId);
         }
 
-        const toast = useToastStore();
-        let toastType = "discovery";
+     
+      
 
         if (
           newest.type === "FRIEND_REQUEST" ||
@@ -74,6 +96,12 @@ export const useNotificationsStore = defineStore("notifications", {
         }
 
         toast.show(newest.message, { type: toastType, duration: 5000 });
+        try {
+          deleteNotificationCall({ notifId: newest.id });
+          console.log("[notifications] requested deletion of notification id:", newest.id);
+        } catch (error) {
+          console.error("[notifications] failed to delete notification:", error);
+        }
       });
     },
 
@@ -82,6 +110,7 @@ export const useNotificationsStore = defineStore("notifications", {
       unsub?.();
       unsub = null;
       this.inbox = [];
+      initialLoadDone = false;
     },
   },
 });
