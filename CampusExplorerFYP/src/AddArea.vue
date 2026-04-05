@@ -67,21 +67,34 @@ L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
 let map = null;
 let polygonLayer = null;
 const vertexMarkers = [];
-const drawnAreaIds = new Set();
+const drawnAreaLayers = new Map();
 
 function drawArea(area) {
-    if (drawnAreaIds.has(area.id)) return;
-    L.polygon(area.polygon, {
+    const existingLayer = drawnAreaLayers.get(area.id);
+    if (existingLayer) {
+        map.removeLayer(existingLayer);
+    }
+
+    const areaLayer = L.polygon(area.polygon, {
         color: area.color ?? "#1e90ff",
         fillColor: area.fillColor ?? area.color ?? "#1e90ff",
         fillOpacity: 0,
         weight: 2,
     }).addTo(map);
-    drawnAreaIds.add(area.id);
+
+    drawnAreaLayers.set(area.id, areaLayer);
 }
 
 watch(() => campusAreasStore.areas, (areas) => {
     if (!map) return;
+
+    const currentAreaIds = new Set(areas.map((area) => area.id));
+    for (const [id, layer] of drawnAreaLayers.entries()) {
+        if (!currentAreaIds.has(id)) {
+            map.removeLayer(layer);
+            drawnAreaLayers.delete(id);
+        }
+    }
     areas.forEach(drawArea);
 }, { deep: true });
 
