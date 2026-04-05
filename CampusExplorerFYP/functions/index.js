@@ -333,6 +333,40 @@ exports.addLocation = onCall(async (request) => {
 
   return { ok: true, id: locationId };
 });
+exports.addArea = onCall(async (request) => {
+  const { auth, data } = request;
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const areaId = (data?.areaId || "").trim();
+  const displayName = (data?.displayName || "").trim();
+  const description = (data?.description || "").trim();
+  const color = (data?.color || "").trim();
+  const polygon = data?.polygon;
+
+  if (!areaId) throw new HttpsError("invalid-argument", "areaId is required.");
+  if (!displayName) throw new HttpsError("invalid-argument", "displayName is required.");
+  if (!description) throw new HttpsError("invalid-argument", "description is required.");
+  if (!color) throw new HttpsError("invalid-argument", "color is required.");
+  if (!Array.isArray(polygon) || polygon.length < 3)
+    throw new HttpsError("invalid-argument", "Polygon must have at least 3 points.");
+
+  await db.collection("campusAreas").doc(areaId).set({
+    id: areaId,
+    displayName,
+    description,
+    polygon,
+    color,
+    fillColor: color,
+    fillOpacity: 0.15,
+    discoveryField: areaId + "Discovered",
+    discoveredColor: color,
+    discoveredFillOpacity: 0,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdByEmail: auth.token?.email || null,
+  });
+
+  return { ok: true, id: areaId };
+});
 
 exports.markDiscovered = onCall(async (request) => {
   const { auth, data } = request;
@@ -490,4 +524,20 @@ exports.cleanOldNotifications = onSchedule("every 24 hours", async () => {
   }
 
   console.log("[cleanOldNotifications] Done.");
+});
+exports.deleteNotification = onCall(async (request) => {
+  const { auth, data } = request;
+  if (!auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const notifId = data?.notifId;
+  if (!notifId) throw new HttpsError("invalid-argument", "notifId is required.");
+
+  await db
+    .collection("notifications")
+    .doc(auth.uid)
+    .collection("inbox")
+    .doc(notifId)
+    .delete();
+
+  return { ok: true };
 });

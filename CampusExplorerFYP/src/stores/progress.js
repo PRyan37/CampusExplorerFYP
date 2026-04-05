@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
-import { campusAreas } from "@/config/campusAreas";
 import { useUserDataStore } from "./userData";
 import { useCampusLocs } from "./campusLocs";
+import { useCampusAreasStore } from "./campusAreas";
 
 export const useProgressStore = defineStore("progress", {
   state: () => ({
@@ -31,6 +31,7 @@ export const useProgressStore = defineStore("progress", {
       try {
         const userData = useUserDataStore();
         const campusLocs = useCampusLocs();
+        const campusAreas = useCampusAreasStore();
         const data = await userData.fetchUserData(userId);
   
         if (!data) {
@@ -45,7 +46,7 @@ export const useProgressStore = defineStore("progress", {
 
         let discoveredCount = 0;
 
-        campusAreas.forEach((area) => {
+        campusAreas.areas.forEach((area) => {
           if (data[area.discoveryField]) {
             discoveredCount++;
           }
@@ -60,7 +61,7 @@ export const useProgressStore = defineStore("progress", {
         let score = discoveredCount * pointsPerLocation;
 
         let completedAreas = 0;
-        campusAreas.forEach((area) => {
+        campusAreas.areas.forEach((area) => {
           const children = allLocations.filter((loc) => loc.areaId === area.id);
           if (children.length === 0) return;
 

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Security Test</title>
+</head>
+<body>
+  <script type="module">
+    import { initializeApp } from "firebase/app";
+import { getAuth,signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs  } from "firebase/firestore";
+  
+
+    const app = initializeApp({
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    });
+
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    async function runTests() {
+
+      console.log("--- TEST 1: Unauthenticated read of users collection ---");
+      try {
+        await signOut(auth);
+        const snap = await getDoc(doc(db, "users", "someUserId"));
+        console.log("FAIL — unauthenticated read succeeded, it should have been blocked");
+      } catch (e) {
+        console.log("PASS — unauthenticated read was blocked:", e.code);
+      }
+
+      console.log("--- TEST 2: Authenticated read of users collection ---");
+      try {
+        await signInWithEmailAndPassword(auth, "testuser@test.com", "password123");
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        console.log("PASS — authenticated read succeeded");
+      } catch (e) {
+        console.log("FAIL — authenticated read was blocked:", e.code);
+      }
+
+      console.log("--- TEST 3: Direct write to users collection ---");
+      try {
+        await setDoc(doc(db, "users", auth.currentUser.uid), { email: "hacked@test.com" });
+        console.log("FAIL — direct write succeeded, it should have been blocked");
+      } catch (e) {
+        console.log("PASS — direct write was blocked:", e.code);
+      }
+
+      console.log("--- TEST 4: Read another user's notifications ---");
+      try {
+        const snap = await getDocs(collection(db, "notifications/someOtherUserId/inbox"));
+        console.log("FAIL — cross-user notification read succeeded, it should have been blocked");
+      } catch (e) {
+        console.log("PASS — cross-user notification read was blocked:", e.code);
+      }
+
+      console.log("--- TEST 5: Read a friend request unrelated to current user ---");
+      try {
+        const snap = await getDoc(doc(db, "friendRequests", "someUnrelatedRequestId"));
+        console.log("FAIL — unrelated friend request read succeeded, it should have been blocked");
+      } catch (e) {
+        console.log("PASS — unrelated friend request read was blocked:", e.code);
+      }
+
+      console.log("--- TEST 6: Public read of campusLocations ---");
+      try {
+        await signOut(auth);
+        const snap = await getDocs(collection(db, "campusLocations"));
+        console.log("PASS — public campusLocations read succeeded, returned", snap.size, "docs");
+      } catch (e) {
+        console.log("FAIL — campusLocations read was blocked:", e.code);
+      }
+    }
+runTests();
+ 
+  </script>
+</body>
+</html>
