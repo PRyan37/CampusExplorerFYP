@@ -1,6 +1,8 @@
 <template>
   <div class="leaflet-map-container">
     <div class="map-buttons">
+      <!-- Reset button for discoveries is only shown in development mode -->
+      <!-- Bootstrap btn styling used -->
       <DevOnly>
         <button class="btn reset-discoveries-button btn-sm" @click="undiscoverAll">
           Reset Discoveries
@@ -15,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, computed, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -107,37 +109,144 @@ const iconOptions = {
 };
 
 const discoveryFlags = {
-  computerScienceBuildingDiscovered: false,
-  anBhiaLannDiscovered: false,
-  engineeringBuildingDiscovered: false,
-  sultDiscovered: false,
-  baileyAllenDiscovered: false,
-  kingfisherDiscovered: false,
-  gaaPitchesDiscovered: false,
-  danganDiscovered: false,
-  southBuildingsDiscovered: false,
-  theHubDiscovered: false,
-  healthCentreDiscovered: false,
-  humanBiologyBuildingDiscovered: false,
-  arasUiChathailDiscovered: false,
-  mailServicesCenterDiscovered: false,
-  dramaCenterDiscovered: false,
-  orbsenBuildingDiscovered: false,
-  boiDiscovered: false,
-  smokeysDiscovered: false,
-  concourseDiscovered: false,
-  centralCampusDiscovered: false,
-  studentUnionShopDiscovered: false,
-  jamesHardimanLibraryDiscovered: false,
-  artsMillenniumBuildingDiscovered: false,
-  northCampusDiscovered: false,
-  studentAccomDiscovered: false,
-  corribVillageDiscovered: false,
-  dunlinVillageDiscovered: false,
+
 };
 
 let watchId = null;
 let marker, circle, zoomed;
+
+onMounted(async () => {
+  await setUpMap();
+});
+
+// This function is a one time setup for the map
+// It initializes the map, loads user discovery state, and sets up click handlers and geolocation watching
+async function setUpMap() {
+  await nextTick();
+  if (!mapEl.value) return;
+  await initMapInstance();
+
+  if (auth.user) {
+    try {
+      const data = await userDataStore.fetchUserData(auth.user.uid);
+      applyDiscoveryStateFromUser(data);
+    } catch (e) {
+      console.error("[LeafletMap] Failed to load discovery state", e);
+    }
+  }
+
+  clickHandler = (e) => {
+    console.log("Map click:", e.latlng);
+    if (developerMode.value) {
+      success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
+    }
+  };
+  map.on("click", clickHandler);
+
+  if ("geolocation" in navigator) {
+    watchId = navigator.geolocation.watchPosition(success, error);
+  } else {
+    alert("Geolocation is not supported by this browser.");
+  }
+}
+
+// This function creates the leaflet map and places all the areas and locations
+async function initMapInstance() {
+  await nextTick();
+  if (map) return;
+  console.log("About to fetch campus locations");
+  await campusLocsStore.startListeningLocations();
+  await campusAreasStore.startListeningAreas();
+  console.log("After fetch", campusLocsStore.locations);
+
+
+  // create the map centered on the campus
+  map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
+
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+
+  // add all areas
+  campusAreasStore.areas.forEach((area) => {
+    const poly = L.polygon(area.polygon, {
+      color: area.color ?? "#1e90ff",
+      fillColor: area.fillColor ?? area.color ?? "#1e90ff",
+      fillOpacity: area.fillOpacity ?? 0.15,
+      weight: 2,
+    }).addTo(map);
+    areaShapesById[area.id] = poly;
+  });
+
+  // add all location markers
+  campusLocsStore.locations.forEach((location) => {
+    addMarker(location);
+    console.log(
+      "Adding marker for location:",
+      location.displayName,
+      location.areaId,
+      discoveryFlags[location.areaId + "Discovered"],
+    );
+  });
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 0);
+}
+
+
+function applyDiscoveryStateFromUser(data) {
+  if (!data) return;
+
+  // sync discovery state from Firestore to map
+  campusAreasStore.areas.forEach((area) => {
+    const field = area.discoveryField;
+    const flag = !!data[field];
+    discoveryFlags[field] = flag;
+
+    if (flag) {
+      const shape = areaShapesById[area.id];
+      if (shape) {
+        shape.setStyle({
+          color: area.discoveredColor ?? area.color ?? "#1e90ff",
+          fillOpacity: area.discoveredFillOpacity ?? 0,
+        });
+      }
+    }
+  });
+
+  campusLocsStore.locations.forEach((loc) => {
+    const flag = !!data[loc.discoveryField];
+    discoveryFlags[loc.discoveryField] = flag;
+    const marker = markersById[loc.id];
+    if (!marker) return;
+
+    if (flag) {
+      setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
+      marker.setOpacity(1);
+    } else if (loc.areaId) {
+      const areaField = loc.areaId + "Discovered";
+      const areaDiscovered = !!data[areaField];
+      marker.setOpacity(areaDiscovered ? 1 : 0);
+    } else {
+      marker.setOpacity(1);
+    }
+  });
+}
+
+function addMarker(location, icon = unknownIcon) {
+  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
+
+  markersById[location.id] = marker;
+
+  // hide markers in undiscovered areas
+  if (location.areaId && !discoveryFlags[location.areaId + "Discovered"]) {
+    marker.setOpacity(0); // invisible but present
+  }
+
+  return marker;
+}
 
 async function setDiscoveredOnUser({ discoveryField, displayName }) {
   if (!auth.user) return;
@@ -182,68 +291,20 @@ function getCurrentLocation() {
   );
 }
 
-onMounted(async () => {
-  await setUpMap();
-});
+
 const markersById = {};
 const areaShapesById = {};
 
+
+
+
+
+
 //add markers
-function addMarker(location, icon = unknownIcon) {
-  const marker = L.marker(location.coords, { icon }).addTo(map).bindPopup(location.displayName);
-
-  markersById[location.id] = marker;
-
-  // hide markers in undiscovered areas
-  if (location.areaId && !discoveryFlags[location.areaId + "Discovered"]) {
-    marker.setOpacity(0); // invisible but present
-  }
-
-  return marker;
-}
-
-//setup map and markers
-async function initMapInstance() {
-  await nextTick();
-  if (map) return;
-  console.log("About to fetch campus locations");
-  await campusLocsStore.startListeningLocations();
-  await campusAreasStore.startListeningAreas();
-  console.log("After fetch", campusLocsStore.locations);
 
 
-  map = L.map(mapEl.value).setView([53.2803, -9.06], 15);
 
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
 
-  // add all areas and icons
-  campusAreasStore.areas.forEach((area) => {
-    const poly = L.polygon(area.polygon, {
-      color: area.color ?? "#1e90ff",
-      fillColor: area.fillColor ?? area.color ?? "#1e90ff",
-      fillOpacity: area.fillOpacity ?? 0.15,
-      weight: 2,
-    }).addTo(map);
-    areaShapesById[area.id] = poly;
-  });
-
-  campusLocsStore.locations.forEach((location) => {
-    addMarker(location);
-    console.log(
-      "Adding marker for location:",
-      location.displayName,
-      location.areaId,
-      discoveryFlags[location.areaId + "Discovered"],
-    );
-  });
-
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 0);
-}
 function setMarkerIcon(id, icon) {
   const marker = markersById[id];
   if (!marker) {
@@ -252,73 +313,7 @@ function setMarkerIcon(id, icon) {
   }
   marker.setIcon(icon);
 }
-function applyDiscoveryStateFromUser(data) {
-  if (!data) return;
 
-  // sync discovery state from Firestore to map
-  campusAreasStore.areas.forEach((area) => {
-    const field = area.discoveryField;
-    const flag = !!data[field];
-    discoveryFlags[field] = flag;
-
-    if (flag) {
-      const shape = areaShapesById[area.id];
-      if (shape) {
-        shape.setStyle({
-          color: area.discoveredColor ?? area.color ?? "#1e90ff",
-          fillOpacity: area.discoveredFillOpacity ?? 0,
-        });
-      }
-    }
-  });
-
-  campusLocsStore.locations.forEach((loc) => {
-    const flag = !!data[loc.discoveryField];
-    discoveryFlags[loc.discoveryField] = flag;
-    const marker = markersById[loc.id];
-    if (!marker) return;
-
-    if (flag) {
-      setMarkerIcon(loc.id, iconOptions[loc.iconKey] ?? unknownIcon);
-      marker.setOpacity(1);
-    } else if (loc.areaId) {
-      const areaField = loc.areaId + "Discovered";
-      const areaDiscovered = !!data[areaField];
-      marker.setOpacity(areaDiscovered ? 1 : 0);
-    } else {
-      marker.setOpacity(1);
-    }
-  });
-}
-
-async function setUpMap() {
-  await nextTick();
-  if (!mapEl.value) return;
-  await initMapInstance();
-
-  if (auth.user) {
-    try {
-      const data = await userDataStore.fetchUserData(auth.user.uid);
-      applyDiscoveryStateFromUser(data);
-    } catch (e) {
-      console.error("[LeafletMap] Failed to load discovery state", e);
-    }
-  }
-
-  clickHandler = (e) => {
-    console.log("Map click:", e.latlng);
-    if (developerMode.value) {
-      success({ coords: { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: 20 } });
-    }
-  };
-  map.on("click", clickHandler);
-
-  if ("geolocation" in navigator) {
-    watchId = navigator.geolocation.watchPosition(success, error);
-  } else {
-    alert("Geolocation is not supported by this browser.");
-  }
-}
 async function undiscoverAll() {
   // 1) reset all location flags and icons
   console.log("[LeafletMap] Resetting discoveries");
@@ -479,6 +474,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* leaflet map container fills all available space  */
 .leaflet-map-container {
   position: relative;
   width: 100%;
