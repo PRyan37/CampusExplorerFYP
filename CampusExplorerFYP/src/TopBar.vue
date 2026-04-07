@@ -13,11 +13,14 @@ const router = useRouter();
 const route = useRoute();
 const menuOpen = ref(false);
 
+// route flags
 const isHome = computed(() => route.path === "/home");
 const isLeaderboard = computed(() => route.path === "/leaderboard");
 const isJourney = computed(() => route.path === "/journey");
 const isAddPage = computed(() => route.path === "/add");
+const userEmail = computed(() => auth.user?.email || "");
 
+// preserves query parameters
 function pushWithCurrentQuery(path) {
   router.push({
     path,
@@ -51,6 +54,7 @@ async function logout() {
   });
 }
 
+// if clicked outside dropdown menu it closes
 function handleDocumentClick(e) {
   if (!e.target.closest(".profile-menu")) {
     menuOpen.value = false;
@@ -66,10 +70,12 @@ onBeforeUnmount(() => {
 
 <template>
   <header class="top-bar">
+    <!-- bootstrap -->
     <div class="container-fluid d-flex align-items-center justify-content-between py-2 px-3">
+      <!-- left side -->
       <div class="profile-menu">
         <button class="auth-name-button" @click.stop="toggleMenu">
-          <span class="auth-name-text mb-0">{{ auth.displayName }}</span>
+          <span class="auth-name-text mb-0">{{ userEmail }}</span>
         </button>
 
         <div v-if="menuOpen" class="profile-dropdown">
@@ -77,6 +83,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
+      <!-- right side -->
       <div class="d-flex align-items-center gap-2 ms-2">
         <div @click="goHome" class="buttons" :class="{ active: isHome }">
           <img :src="homeImg" alt="Home" />
@@ -102,9 +109,6 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-.buttons {
-  position: relative;
-}
 
 .notification-dot {
   position: absolute;
@@ -145,6 +149,7 @@ onBeforeUnmount(() => {
 }
 
 .buttons {
+  position: relative;
   background-color: white;
   width: 50px;
   height: 50px;

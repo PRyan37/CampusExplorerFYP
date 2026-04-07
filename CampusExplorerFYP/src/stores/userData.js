@@ -9,6 +9,7 @@ export const useUserDataStore = defineStore("userData", {
     error: null,
   }),
   actions: {
+    // if cached results exist return them, otherwise fetch from firestore and cache
     async fetchUserData(userId, force = false) {
       if (!userId) return null;
 
@@ -40,7 +41,7 @@ export const useUserDataStore = defineStore("userData", {
         this.loading = false;
       }
     },
-
+    // Invalidate user data cache for a specific userId used when we know data has changed and want to refetch next time
     invalidateUser(userId) {
       if (userId && this.cache[userId]) {
         delete this.cache[userId];

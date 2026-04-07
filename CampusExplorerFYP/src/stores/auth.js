@@ -13,27 +13,28 @@ import { app } from "@/firebase/Firebase";
 import { useCampusLocs } from "./campusLocs";
 import { useCampusAreasStore } from "./campusAreas";
 
+// cloud function setup
 const functions = getFunctions(app);
 const createUserProfileCall = httpsCallable(functions, "createUserProfile");
 
+  // manages user authentication state, including registration, login, logout, and reacting to auth state changes to set up/tear down related data listeners
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    user: null,
+    user: null, // current Firebase user object
     isAuthenticated: false,
     loading: false,
     error: null,
-    ready: false,
+    ready: false, // becomes true after the first onAuthStateChanged callback
   }),
-  getters: {
-    displayName(state) {
-      return state.user?.email || "";
-    },
-  },
+
   actions: {
+    // Firebse auth state listener that updates the store's user and isAuthenticated state whenever the user's auth state changes (e.g. login, logout, token refresh)
     init() {
       console.log("[auth.init] called");
-      onAuthStateChanged(auth, (user) => {
+      onAuthStateChanged(auth, async (user) => {
         console.log("[auth.init]Auth state changed. User:", this.isAuthenticated);
+
+        // update auth store state
         this.user = user;
         this.isAuthenticated = !!user;
         this.ready = true;
@@ -44,11 +45,13 @@ export const useAuthStore = defineStore("auth", {
         const campusAreasStore = useCampusAreasStore();
 
         if (user) {
+          //user login
           friendRequestsStore.subscribeIncomingRequests();
           notificationsStore.start();
-          campusLocsStore.startListeningLocations();
-          campusAreasStore.startListeningAreas();
+          await campusLocsStore.startListeningLocations();
+          await campusAreasStore.startListeningAreas();
         } else {
+            //user logout
           friendRequestsStore.unsubscribeIncomingRequests();
           notificationsStore.stop();
           campusLocsStore.stopListeningLocations();

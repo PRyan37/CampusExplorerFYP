@@ -83,8 +83,6 @@ async function buildActivityEntriesForUser(userId, email, force = false) {
 }
 
 async function loadActivity(force = false) {
-    await campusLocsStore.startListeningLocations();
-    await campusAreasStore.startListeningAreas();
     await friendsStore.fetchFriends(); // cached
 
     const activityEntries = [];

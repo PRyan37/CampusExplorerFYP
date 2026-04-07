@@ -18,6 +18,8 @@ export const useProgressStore = defineStore("progress", {
         console.warn("[progress] No user ID provided, cannot calculate score.");
         return 0;
       }
+
+      // Check cache first to avoid unnecessary calculations and Firestore reads
       if (this.cachedScores[userId] !== undefined && !force) {
         console.log(
           `[progress] Returning cached score for user ${userId}:`,
@@ -32,6 +34,8 @@ export const useProgressStore = defineStore("progress", {
         const userData = useUserDataStore();
         const campusLocs = useCampusLocs();
         const campusAreas = useCampusAreasStore();
+
+        // Ensure campus data is loaded before calculating score
         const data = await userData.fetchUserData(userId);
   
         if (!data) {
@@ -40,18 +44,17 @@ export const useProgressStore = defineStore("progress", {
         }
 
         const allLocations = campusLocs.locations;
-
         const pointsPerLocation = 10;
         const bonusPerCompletedArea = 30;
 
         let discoveredCount = 0;
-
+        // Count discovered areas
         campusAreas.areas.forEach((area) => {
           if (data[area.discoveryField]) {
             discoveredCount++;
           }
         });
-
+        // Count discovered locations
         allLocations.forEach((location) => {
           if (location.discoveryField && data[location.discoveryField]) {
             discoveredCount++;
@@ -61,6 +64,7 @@ export const useProgressStore = defineStore("progress", {
         let score = discoveredCount * pointsPerLocation;
 
         let completedAreas = 0;
+        // Check for completed areas (area discovered + all child locations discovered)
         campusAreas.areas.forEach((area) => {
           const children = allLocations.filter((loc) => loc.areaId === area.id);
           if (children.length === 0) return;
@@ -85,6 +89,7 @@ export const useProgressStore = defineStore("progress", {
         this.loading = false;
       }
     },
+    // Invalidate cached score for a specific userId used when we know data has changed and want to recalculate next time
     invalidateUserScore(userId) {
       if (userId && this.cachedScores[userId] != null) {
         delete this.cachedScores[userId];

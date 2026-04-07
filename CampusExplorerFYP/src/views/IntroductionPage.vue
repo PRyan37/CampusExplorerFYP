@@ -57,6 +57,9 @@ function goToSignIn() {
                 <div class="image-card">
                     <img :src="nuigPicTwo" alt="University of Galway campus view" />
                 </div>
+                <div class="image-card">
+                    <img :src="nuigPicThree" alt="University of Galway campus view" />
+                </div>
             </div>
         </section>
     </div>

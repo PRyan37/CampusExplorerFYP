@@ -17,7 +17,7 @@ export const useCampusLocs = defineStore("campusLocations", {
     startListeningLocations() {
       // avoids duplicate listeners
       console.log("[campusLocs] startListeningLocations called. Loaded:", this.loaded);
-      if (this.loaded){
+    if (this.loaded || this.loading) {
         console.warn("[campusLocs] startListeningLocations called but locations are already loaded");
         return Promise.resolve();
       } 

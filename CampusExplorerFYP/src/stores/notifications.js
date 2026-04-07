@@ -32,9 +32,9 @@ export const useNotificationsStore = defineStore("notifications", {
         orderBy("createdAt", "desc"),
         limit(20),
       );
-
+      // clean up any existing listener before setting up a new one to avoid duplicates
       unsub?.();
-
+// set up Firestore listener for notifications collection
       unsub = onSnapshot(q, (snap) => {
         console.log("[notifications] snapshot received, size:", snap.size);
         const prevFirst = this.inbox[0]?.id;

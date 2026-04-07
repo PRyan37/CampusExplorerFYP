@@ -17,7 +17,7 @@ export const useCampusAreasStore = defineStore("campusAreas", {
     startListeningAreas() {
       console.log("[campusAreas] startListeningAreas called. Loaded:", this.loaded);
       // avoids duplicate listeners
-      if (this.loaded){
+    if (this.loaded || this.loading) {
         console.warn("[campusAreas] startListeningAreas called but areas are already loaded");
         return Promise.resolve();
       }

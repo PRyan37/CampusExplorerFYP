@@ -37,6 +37,7 @@ import dramaImg from "./assets/DramaIcon.png";
 import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
+import carParkImg from "./assets/CarParkIcon.png";
 import { useAuthStore } from "./stores/auth";
 import { app } from "./firebase/Firebase";
 import { useToastStore } from "./stores/toast";
@@ -47,6 +48,7 @@ import { useUserDataStore } from "./stores/userData";
 import { useProgressStore } from "./stores/progress";
 import DevOnly from "./DevOnly.vue";
 import { useRoute } from "vue-router";
+import { ensureCampusDataLoaded } from "./composables/useCampusData";
 
 
 const auth = useAuthStore();
@@ -106,10 +108,13 @@ const iconOptions = {
   bank: new defaultIcon({ iconUrl: bankImg }),
   shop: new defaultIcon({ iconUrl: shopImg }),
   accom: new defaultIcon({ iconUrl: accomImg }),
+  carPark: new defaultIcon({ iconUrl: carParkImg }),
 };
 
+// discoveryFlags gets filled in applyDiscoveryStateFromUser
+// also gets filled when users discover areas/locations
+// gets reset in undiscoverAll
 const discoveryFlags = {
-
 };
 
 let watchId = null;
@@ -154,10 +159,8 @@ async function setUpMap() {
 async function initMapInstance() {
   await nextTick();
   if (map) return;
-  console.log("About to fetch campus locations");
-  await campusLocsStore.startListeningLocations();
-  await campusAreasStore.startListeningAreas();
-  console.log("After fetch", campusLocsStore.locations);
+  // Ensure campus data is loaded before initializing the map, so that areas and locations are available.
+  await ensureCampusDataLoaded();
 
 
   // create the map centered on the campus
@@ -199,7 +202,7 @@ async function initMapInstance() {
 function applyDiscoveryStateFromUser(data) {
   if (!data) return;
 
-  // sync discovery state from Firestore to map
+  // sync discovery of areas state from Firestore to map
   campusAreasStore.areas.forEach((area) => {
     const field = area.discoveryField;
     const flag = !!data[field];
@@ -216,6 +219,7 @@ function applyDiscoveryStateFromUser(data) {
     }
   });
 
+  // sync discovery of individual locations from Firestore to map, and set icons for discovered locations
   campusLocsStore.locations.forEach((loc) => {
     const flag = !!data[loc.discoveryField];
     discoveryFlags[loc.discoveryField] = flag;
@@ -247,7 +251,8 @@ function addMarker(location, icon = unknownIcon) {
 
   return marker;
 }
-
+// When a user discovers a new area or location, this function is called to update Firestore and the local map state
+// invalidates user data and progress store to trigger refetch with updated discovery state
 async function setDiscoveredOnUser({ discoveryField, displayName }) {
   if (!auth.user) return;
 
@@ -259,7 +264,7 @@ async function setDiscoveredOnUser({ discoveryField, displayName }) {
     console.error("[LeafletMap] Failed to update discovery flag", location, e);
   }
 }
-
+// fires on centre on my location button click
 function getCurrentLocation() {
   console.log("[LeafletMap] getCurrentLocation clicked");
 
@@ -300,11 +305,7 @@ const areaShapesById = {};
 
 
 
-//add markers
-
-
-
-
+// sets the marker icon for a given location id, used when a location is discovered or reset to undiscovered
 function setMarkerIcon(id, icon) {
   const marker = markersById[id];
   if (!marker) {
@@ -369,6 +370,7 @@ async function undiscoverAll() {
     }
   }
 }
+// Updates the user's location marker on the map, and checks for area and location discoveries based on the new position
 function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
   if (marker) {
     map.removeLayer(marker);
@@ -384,6 +386,8 @@ function updateUserLocationMarker(latitude, longitude, accuracy = 20) {
     zoomed = map.fitBounds(circle.getBounds());
   }
 }
+// This function is called whenever the user's geolocation is updated, either through the watchPosition or by clicking on the map in developer mode.
+// It checks if the user has entered any new areas or locations and updates the discovery state accordingly.
 async function success(position) {
   if (!map) return;
 
