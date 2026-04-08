@@ -11,7 +11,7 @@ const sounds = {
   friendRequest: new Audio(friendRequestSFX),
   discovery: new Audio(discoverySFX),
 };
-
+// broweser loads audio so they are ready to fire
 Object.values(sounds).forEach((a) => (a.preload = "auto"));
 
 function playSound(type, enabled) {

@@ -15,7 +15,7 @@ const campusAreasStore = useCampusAreasStore();
 const recentDiscoveries = ref([]);
 const selectedFriendId = ref("");
 const selectedTimeRange = ref("ever");
-// Build metadata for both areas and locations from Firestore
+// Build metadata for all discoverables (areas + locations) keyed by discoveryField
 const discoveryMetaByField = computed(() => {
     const items = [
         ...campusLocsStore.locations.map((loc) => ({
@@ -34,7 +34,7 @@ const discoveryMetaByField = computed(() => {
         return acc;
     }, {});
 });
-
+// Apply friend and time filters on top of recentDiscoveries
 const filteredDiscoveries = computed(() => {
     let filtered = recentDiscoveries.value;
 
@@ -83,7 +83,7 @@ async function buildActivityEntriesForUser(userId, email, force = false) {
 }
 
 async function loadActivity(force = false) {
-    await friendsStore.fetchFriends(); // cached
+    await friendsStore.fetchFriends();
 
     const activityEntries = [];
     activityEntries.push(
