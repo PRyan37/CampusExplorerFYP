@@ -1,11 +1,4 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+
 
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
@@ -16,20 +9,10 @@ const cors = require("cors")({
   origin: ["http://localhost:5173", "https://campusexplorer-4a01d.web.app"],
 });
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
+// Limit max concurrent instances of all functions
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+
 
 const admin = require("firebase-admin");
 
@@ -38,8 +21,15 @@ if (!admin.apps.length) admin.initializeApp();
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 if (!admin.apps.length) admin.initializeApp();
+// Firestore DB handle
 const db = admin.firestore();
 
+
+/**
+ * createUserProfile
+ * Called after a new user registers.
+ * Ensures there is a users document with email + createdAt.
+ */
 exports.createUserProfile = onCall(async (request) => {
   const { auth } = request;
 
@@ -62,6 +52,18 @@ exports.createUserProfile = onCall(async (request) => {
   return { ok: true };
 });
 
+/**
+ * sendFriendRequest
+ * Authenticated user sends a friend request to another user by email.
+ * Validates:
+ *   target user exists
+ *   not sending to self
+ *   not already friends
+ *   no pending or reverse request
+ * Creates:
+ *   friendRequests doc
+ *   notifications for both sender and receiver
+ */
 exports.sendFriendRequest = onCall(async (request) => {
   const { data, auth } = request;
 
@@ -164,6 +166,20 @@ exports.sendFriendRequest = onCall(async (request) => {
   return { requestId: requestId };
 });
 
+/**
+ * respondToFriendRequest
+ * Authenticated recipient accepts or rejects a friend request.
+ * Validates:
+ *   request exists
+ *   current user is the recipient
+ *   request is still pending
+ * On accept:
+ *   creates two `friends` docs (bidirectional)
+ *   deletes friendRequests doc
+ *   sends notifications to both users
+ * On reject:
+ *   deletes friendRequests doc
+ */
 exports.respondToFriendRequest = onCall(async (request) => {
   const { data, auth } = request;
 
@@ -195,7 +211,7 @@ exports.respondToFriendRequest = onCall(async (request) => {
     if (reqData.status !== "pending") {
       throw new HttpsError("failed-precondition", "Request is not pending.");
     }
-
+   // action === "reject" simply deletes the request document
     if (action === "reject") {
       await reqRef.delete();
       console.log("[respondToFriendRequest] rejected:", requestId);
@@ -277,6 +293,15 @@ exports.respondToFriendRequest = onCall(async (request) => {
   }
 });
 
+
+/**
+ * addLocation
+ * Adds a new campus location document in `campusLocations`.
+ * Validates all required fields:
+ *   locationId, displayName, description, latitude, longitude, areaId, iconKey
+ * Stores:
+ *   coords, discoveryField, areaId, iconKey, createdAt, createdByEmail
+ */
 exports.addLocation = onCall(async (request) => {
   const { auth, data } = request;
 
@@ -333,6 +358,14 @@ exports.addLocation = onCall(async (request) => {
 
   return { ok: true, id: locationId };
 });
+/**
+ * addArea
+ * Adds a new campus area document in `campusAreas`.
+ * Validates:
+ *   areaId, displayName, description, color
+ *   polygon array with at least 3 points
+ * Stores visual + discovery config for the area.
+ */
 exports.addArea = onCall(async (request) => {
   const { auth, data } = request;
   if (!auth) throw new HttpsError("unauthenticated", "Login required.");
@@ -368,6 +401,14 @@ exports.addArea = onCall(async (request) => {
   return { ok: true, id: areaId };
 });
 
+/**
+ * markDiscovered
+ * Called when user discovers an area or location.
+ * Updates the user's `users/{uid}` doc:
+ *   sets discoveryField = true
+ *   sets discoveryFieldAt = serverTimestamp
+ * Notifies all friends with a FRIEND_DISCOVERY notification.
+ */
 exports.markDiscovered = onCall(async (request) => {
   const { auth, data } = request;
   if (!auth) throw new HttpsError("unauthenticated", "Login required.");
@@ -426,6 +467,12 @@ exports.markDiscovered = onCall(async (request) => {
 
   return { ok: true, notified: friendIds.length };
 });
+
+/**
+ * resetDiscoveries
+ * For the current user, clears all `*Discovered` and `*DiscoveredAt` fields on their user doc.
+ * Used by your dev "Reset Discoveries" button.
+ */
 exports.resetDiscoveries = onCall(async (request) => {
   const { auth } = request;
   if (!auth) throw new HttpsError("unauthenticated", "Login required.");
@@ -458,6 +505,14 @@ exports.resetDiscoveries = onCall(async (request) => {
   return { ok: true, changed: true, cleared: Object.keys(reset).length };
 });
 
+/**
+ * searchUsers
+ * Authenticated search over users collection by email.
+ * Validates:
+ *   query length (>= 2)
+ *   limit (1..30)
+ * Returns a list of matching users (uid, email, displayName).
+ */
 exports.searchUsers = onCall(async (request) => {
   const { auth, data } = request;
 
@@ -482,7 +537,7 @@ exports.searchUsers = onCall(async (request) => {
   }
 
   try {
-    // IMPORTANT: users docs should have email set to email.toLowerCase()
+  
     const usersRef = db.collection("users");
     const snap = await usersRef
       .where("email", ">=", query)

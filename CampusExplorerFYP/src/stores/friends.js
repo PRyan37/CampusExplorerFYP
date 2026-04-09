@@ -10,6 +10,7 @@ export const useFriendsStore = defineStore("friends", {
     error: null,
   }),
   actions: {
+    // fetches the current user's friends list from Firestore. 
     async fetchFriends() {
       const auth = useAuthStore();
       if (!auth.user) return;

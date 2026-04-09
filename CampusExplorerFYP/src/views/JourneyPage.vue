@@ -55,7 +55,7 @@
             </ul>
         </div>
 
-        <!-- Standalone icons -->
+        <!-- there is no standalone icons -->
         <div v-if="standaloneIcons.length" class="standalone-group">
             <h3>Other Locations</h3>
             <ul class="children-list">
@@ -88,6 +88,7 @@ import { useUserDataStore } from "@/stores/userData";
 import { useProgressStore } from "@/stores/progress";
 import { useCampusLocs } from "@/stores/campusLocs";
 import { useCampusAreasStore } from "@/stores/campusAreas";
+import { ensureCampusDataLoaded } from "@/composables/useCampusData";
 
 const progressStore = useProgressStore();
 const campusLocsStore = useCampusLocs();
@@ -98,6 +99,8 @@ const myScore = ref(0);
 const discoveredLocations = ref(0);
 const expandedField = ref(null);
 
+// if clicked the open one close it 
+// if clicked different one open it
 function toggleDescription(loc) {
     if (!loc.discovered) return;
     if (expandedField.value === loc.field) {
@@ -113,6 +116,7 @@ const totalLocations = computed(() => allLocations.value.length + campusAreasSto
 
 const areaGroups = ref([]);
 const standaloneIcons = ref([]);
+
 
 function buildAreaGroups() {
     areaGroups.value = campusAreasStore.areas.map((area) => ({
@@ -150,8 +154,7 @@ const progressPercent = computed(() => {
 });
 
 onMounted(async () => {
-    await campusLocsStore.startListeningLocations();
-    await campusAreasStore.startListeningAreas();
+    await ensureCampusDataLoaded();
     buildAreaGroups();
 
     if (auth.user) {
@@ -159,7 +162,7 @@ onMounted(async () => {
         myScore.value = await progressStore.calculateScoreForUser(auth.user.uid);
 
 
-
+        // count discovered locations
         if (userData) {
             let count = 0;
 

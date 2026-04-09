@@ -5,6 +5,7 @@ import TopBar from "../TopBar.vue";
 </script>
 
 <template>
+  <!-- The main page of the app, which contains the map and the top bar. -->
   <div class="main-page">
     <TopBar />
     <div class="map-page-content">

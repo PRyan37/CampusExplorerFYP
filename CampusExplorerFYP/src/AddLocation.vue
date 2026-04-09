@@ -75,6 +75,7 @@ import dramaImg from "./assets/DramaIcon.png";
 import bankImg from "./assets/BankIcon.png";
 import shopImg from "./assets/ShopIcon.png";
 import accomImg from "./assets/AccomIcon.png";
+import carParkImg from "./assets/CarParkIcon.png";
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -85,6 +86,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "./firebase/Firebase";
 import { useCampusLocs } from "./stores/campusLocs";
 import { useCampusAreasStore } from "./stores/campusAreas";
+import { ensureCampusDataLoaded } from "@/composables/useCampusData";
 
 const mapEl = ref(null);
 const latitude = ref("");
@@ -123,6 +125,7 @@ const iconChoices = [
     { label: "Bank", value: "bank", preview: bankImg },
     { label: "Shop", value: "shop", preview: shopImg },
     { label: "Accommodation", value: "accom", preview: accomImg },
+    { label: "Car Park", value: "carPark", preview: carParkImg },
 ];
 const selectedIconKey = ref("");
 const selectedIcon = computed(() =>
@@ -151,6 +154,7 @@ const iconOptions = {
     bank: new defaultIcon({ iconUrl: bankImg }),
     shop: new defaultIcon({ iconUrl: shopImg }),
     accom: new defaultIcon({ iconUrl: accomImg }),
+    carPark: new defaultIcon({ iconUrl: carParkImg }),
 };
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -204,7 +208,7 @@ async function onSubmit() {
         }
 
         isSubmitting.value = true;
-        await campusLocsStore.startListeningLocations();
+
 
         const trimmedId = locationId.value.trim();
         const existing = campusLocsStore.locations.find((loc) => loc.id === trimmedId);
@@ -269,6 +273,7 @@ async function loadFirestoreMarkers() {
 
 async function initMapInstance() {
     await nextTick();
+    await ensureCampusDataLoaded();
     await campusAreasStore.startListeningAreas();
 
     map = L.map(mapEl.value).setView([53.2803, -9.06], 15);

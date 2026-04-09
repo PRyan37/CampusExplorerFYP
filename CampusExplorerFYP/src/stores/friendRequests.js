@@ -32,7 +32,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         console.warn("[friendRequests] no auth.user, cannot subscribe");
         return;
       }
-
+      // clean up any existing listener before setting up a new one to avoid duplicates
       if (this._unsubIncoming) {
         this._unsubIncoming();
         this._unsubIncoming = null;
@@ -82,6 +82,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         this.error = e.message || String(e);
       }
     },
+    // stops the Firestore listener. 
     unsubscribeIncomingRequests() {
       console.log("[friendRequests.js] Unsubscribing from incoming friend requests...");
       if (this._unsubIncoming) {
@@ -89,6 +90,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         this._unsubIncoming = null;
       }
     },
+    // no longer used
     async fetchIncomingRequests() {
       console.log("[friendRequests.js] Fetching incoming friend requests...");
       const auth = useAuthStore();
@@ -110,6 +112,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         console.log("[friendRequests.js] Incoming friend requests fetched:", this.incomingRequests);
       }
     },
+      // no longer used
     async fetchOutgoingRequests() {
       const auth = useAuthStore();
       if (!auth.user) return;
@@ -127,6 +130,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         this.loading = false;
       }
     },
+    // calls Firebase Function to send a friend request to the specified email. Errors are caught and stored in state and also shown as toast notifications.
     async sendFriendRequest(toEmail) {
       this.loading = true;
       this.error = null;
@@ -143,7 +147,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         this.loading = false;
       }
     },
-
+  //  calls Firebase Function to accept a friend request by requestId. Errors are caught and stored in state and also shown as toast notifications.
     async acceptFriendRequest(requestId) {
       this.loading = true;
       this.error = null;
@@ -160,7 +164,7 @@ export const useFriendRequestsStore = defineStore("friendRequests", {
         this.loading = false;
       }
     },
-
+//   calls Firebase Function to reject a friend request by requestId. Errors are caught and stored in state and also shown as toast notifications.
     async rejectFriendRequest(requestId) {
       this.loading = true;
       this.error = null;

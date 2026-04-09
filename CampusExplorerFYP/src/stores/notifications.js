@@ -32,9 +32,9 @@ export const useNotificationsStore = defineStore("notifications", {
         orderBy("createdAt", "desc"),
         limit(20),
       );
-
+      // clean up any existing listener before setting up a new one to avoid duplicates
       unsub?.();
-
+      // set up Firestore listener for notifications collection
       unsub = onSnapshot(q, (snap) => {
         console.log("[notifications] snapshot received, size:", snap.size);
         const prevFirst = this.inbox[0]?.id;
@@ -47,6 +47,7 @@ export const useNotificationsStore = defineStore("notifications", {
         }
           let toastType = "discovery";
            const toast = useToastStore();
+          //  on initial load, show toast for most recent notification only and delete all silently to avoid overwhelming user with toasts 
         if (!initialLoadDone) {
           console.log("[notifications] initial load, showing toast for most recent notification only");
           initialLoadDone = true;
@@ -59,7 +60,7 @@ export const useNotificationsStore = defineStore("notifications", {
             friendsStore.fetchFriends();
           }
           toast.show(newest.message, { type: toastType, duration: 5000 });
-          // delete ALL silently — no cascade
+          // delete ALL silently 
           this.inbox.forEach(n => deleteNotificationCall({ notifId: n.id }));
           return;
         }

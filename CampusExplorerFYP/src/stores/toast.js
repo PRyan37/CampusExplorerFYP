@@ -1,17 +1,17 @@
 import { defineStore } from "pinia";
 
-// Import sound files (Vite will bundle them)
+
 import discoverySFX from "../assets/sounds/discoverySound.mp3";
 import errorSFX from "../assets/sounds/errorSound.mp3";
 import friendRequestSFX from "../assets/sounds/friendRequestSound.mp3";
 
-// Pre-create Audio objects so you don't re-download/recreate each time
+
 const sounds = {
   error: new Audio(errorSFX),
   friendRequest: new Audio(friendRequestSFX),
   discovery: new Audio(discoverySFX),
 };
-
+// broweser loads audio so they are ready to fire
 Object.values(sounds).forEach((a) => (a.preload = "auto"));
 
 function playSound(type, enabled) {
@@ -37,23 +37,17 @@ export const useToastStore = defineStore("toast", {
   }),
 
   actions: {
-    /**
-     * @param {string} message
-     * @param {object} opts
-     * @param {"error"|"friendRequest"|"discovery"} [opts.type]
-     * @param {number} [opts.duration=10000]
-     * @param {boolean} [opts.sound=true]
-     */
+   
     show(message, opts = {}) {
       const { type = "default", duration = 10000, sound = true } = opts;
 
       const id = Date.now() + Math.random();
       console.log("[toast.store] show()", { id, message, type, duration });
 
-      // store the type too (useful for styling)
+   
       this.toasts.push({ id, message, type });
 
-      // play the right sound
+    
       if (sound) playSound(type, this.soundEnabled);
 
       setTimeout(() => {
